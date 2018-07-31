@@ -381,6 +381,10 @@ __machine_name=${arg_m}
 __repo_url=${arg_u}
 __compose_file="docker-compose.yml"
 __env_file=".env"
+<<<<<<< HEAD
+=======
+
+>>>>>>> 07b4b5863709c573a97533d8a0693cf69e7bda39
 
 ## @brief Pulls repository in the given path
 ## @param $1 repo url to clone.
