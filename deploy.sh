@@ -380,7 +380,7 @@ mkdir -p "${__repo_dir}" # Create the repo directory
 __machine_name=${arg_m}
 __repo_url=${arg_u}
 __compose_file="docker-compose.yml"
-__env_file="credentials.env.encrypted"
+__env_file=".env"
 
 
 ## @brief Pulls repository in the given path
@@ -430,14 +430,12 @@ analyzeRepository() {
 ## @param $2 path to private key for decryption
 decryptEnv() {
   local repo_path=${1}
-  local private_key=${2}
   local env_path="${1}/${__env_file}"
-  local temp_output
-  temp_output=$(mktemp)
   if [ -f "${env_path}" ]; then
-    openssl rsautl -decrypt -in "${env_path}" -out "${temp_output}" -inkey "${private_key}"
-    mv "${temp_output}" "${env_path}"
+    pushd ${repo_path}
+    git secret reveal -f -p ${GITSECRETPASS}
     info "Decryption of environment variables successful"
+    popd
   else
     info "No environment file given. Making an empty one"
     touch "${env_path}"
