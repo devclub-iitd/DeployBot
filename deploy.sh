@@ -148,9 +148,8 @@ EOF
 
 # shellcheck disable=SC2015
 [[ "${__helptext+x}" ]] || read -r -d '' __helptext <<-'EOF' || true # exits non-zero when EOF encountered
- This is Bash3 Boilerplate's help text. Feel free to add any description of your
- program or elaborate more on command-line arguments. This section is not
- parsed and will be added as-is to the help.
+ This is the deploy script by DevClub IITD. This assumes that you have docker-machine
+ and docker-compose setup.
 EOF
 
 # Translate usage string -> getopts arguments, and set $arg_<flag> defaults
@@ -372,13 +371,12 @@ fi
 ### Runtime
 ##############################################################################
 
-__build_user="builder"
 __repo_name=${arg_n}
 __temp_dir=$(mktemp -d)
-__rsa_private_key_path="~/.ssh/id_rsa"
-chmod -R 755 ${__temp_dir} # mktemp gives 700 permission by default
+__rsa_private_key_path="${HOME}/.ssh/id_rsa"
+chmod -R 755 "${__temp_dir}" # mktemp gives 700 permission by default
 __repo_dir="${__temp_dir}/${__repo_name}"
-mkdir -p ${__repo_dir} # Create the repo directory
+mkdir -p "${__repo_dir}" # Create the repo directory
 __machine_name=${arg_m}
 __repo_url=${arg_u}
 __compose_file="docker-compose.yml"
@@ -391,9 +389,9 @@ __env_file="credentials.env.encrypted"
 pullRepository() {
   local repo_url=${1}
   local repo_path=${2}
-  pushd ${repo_path}
-  git clone --depth=1 ${repo_url} .
-  chmod -R 755 ${repo_path}
+  pushd "${repo_path}"
+  git clone --depth=1 "${repo_url}" .
+  chmod -R 755 "${repo_path}"
   info "Repository successfully pulled - ${repo_url}"
   popd
 }
@@ -403,7 +401,7 @@ pullRepository() {
 checkServerName() {
   local server_name=${1}
   info "Checking server name - ${server_name}"
-  if $(docker-machine ls --format "{{.Name}}" | grep -Fxq $server_name); then
+  if docker-machine ls --format "{{.Name}}" | grep -Fxq "$server_name"; then
     info "server name is correct"
   else
     error "Invalid server name"
@@ -415,7 +413,7 @@ checkServerName() {
 ## @param $1 repository path
 analyzeRepository() {
   local repo_path=${1}
-  pushd ${repo_path}
+  pushd "${repo_path}"
   if [ ! -f "$__compose_file" ]; then
     error "Docker Compose file does not exist."
     exit 1
@@ -434,14 +432,15 @@ decryptEnv() {
   local repo_path=${1}
   local private_key=${2}
   local env_path="${1}/${__env_file}"
-  local temp_output=$(mktemp)
-  if [ -f ${env_path} ]; then
-    openssl rsautl -decrypt -in ${env_path} -out ${temp_output} -inkey ${private_key}
-    mv ${temp_output} ${env_path}
+  local temp_output
+  temp_output=$(mktemp)
+  if [ -f "${env_path}" ]; then
+    openssl rsautl -decrypt -in "${env_path}" -out "${temp_output}" -inkey "${private_key}"
+    mv "${temp_output}" "${env_path}"
     info "Decryption of environment variables successful"
   else
     info "No environment file given. Making an empty one"
-    touch ${env_path}
+    touch "${env_path}"
   fi
 }
 
@@ -452,7 +451,7 @@ buildImage() {
   ## docker images to be built without any security. Find a BETTER solution
   ## for this.
   local repo_path=${1}
-  pushd ${repo_path}
+  pushd "${repo_path}"
   docker-compose build
   popd
   info "building image successfull"
@@ -462,7 +461,7 @@ buildImage() {
 ## @param $1 path to repo
 pushImage() {
   local repo_path=${1}
-  pushd ${repo_path}
+  pushd "${repo_path}"
   docker-compose push
   info "Build image pushed"
   popd
@@ -472,7 +471,7 @@ pushImage() {
 ## @param $1 path to repo
 deployImage() {
   local repo_path=$1
-  pushd ${repo_path}
+  pushd "${repo_path}"
   eval "$(docker-machine env ${__machine_name})"
   docker-compose pull
   docker-compose up --no-build -d
@@ -485,19 +484,18 @@ deployImage() {
 ## @param $1 repo path
 cleanup() {
   local repo_path=$1
-  rm -rf ${repo_path}
+  rm -rf "${repo_path}"
   info "Cleanup successfull"
 }
 
 info "Machine: ${__machine_name}"
 info "URL: ${__repo_url}"
 info "Name: ${__repo_name}"
-## @brief Main function to run in the script
-checkServerName ${__machine_name}
-pullRepository ${__repo_url} ${__repo_dir}
-analyzeRepository ${__repo_dir}
-decryptEnv ${__repo_dir} ${__rsa_private_key_path}
-buildImage ${__repo_dir}
-pushImage ${__repo_dir}
-deployImage ${__repo_dir}
-cleanup ${__repo_dir}
+checkServerName "${__machine_name}"
+pullRepository "${__repo_url}" "${__repo_dir}"
+analyzeRepository "${__repo_dir}"
+decryptEnv "${__repo_dir}" "${__rsa_private_key_path}"
+buildImage "${__repo_dir}"
+pushImage "${__repo_dir}"
+deployImage "${__repo_dir}"
+cleanup "${__repo_dir}"
