@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -61,4 +62,27 @@ func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if optionType == "git_repo" {
 		w.Write(RepoOptionsByte)
 	}
+}
+
+func repoHandler(w http.ResponseWriter, r *http.Request) {
+	b, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// Unmarshal
+	var msg interface{}
+	err = json.Unmarshal(b, &msg)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fmt.Println(r)
+	fmt.Println(msg)
+	w.WriteHeader(200)
+	// Need to send a message to the chat using chat.PostMessage and call the
+	// actual deployment code
 }
