@@ -1,82 +1,69 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
+
+	if validateRequest(r) {
+		fmt.Println("Request verification from slack SUCCESS")
+	} else {
+		fmt.Println("Request verification from slack FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
 	r.ParseForm()
 	triggerID := r.Form["trigger_id"][0]
 
 	var f interface{}
-	err := json.Unmarshal(jsonInteractive, &f)
+	err := json.Unmarshal(DialogMenu, &f)
 	if err != nil {
 		panic(err)
 	}
-	m := f.(map[string]interface{})
-	m["trigger_id"] = triggerID
-	mesg, _ := json.Marshal(m)
+	dialogJSON := f.(map[string]interface{})
+	DeployCount++
+	dialogJSON["callback_id"] = "deploy-" + strconv.Itoa(DeployCount)
 
-	req, err := http.NewRequest("POST", SlackDialogURL, bytes.NewBuffer(mesg))
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Authorization", "Bearer "+SlackAccessToken)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
+	dialogMesg := make(map[string]interface{})
+	dialogMesg["trigger_id"] = triggerID
+	dialogMesg["dialog"] = dialogJSON
 
-	var respBody interface{}
-	json.NewDecoder(resp.Body).Decode(&respBody)
-	if (respBody.(map[string]interface{}))["ok"] == false {
-		fmt.Fprintf(w, "Some error occured, please try again later")
+	if dialogOpen(dialogMesg) == false {
+		fmt.Fprintf(w, "Some error occured")
+		w.WriteHeader(500)
 	}
 
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	fmt.Println(r.Form["payload"][0])
 
+	if validateRequest(r) {
+		fmt.Println("Request verification from slack SUCCESS")
+	} else {
+		fmt.Println("Request verification from slack FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
+	r.ParseForm()
 	fmt.Fprint(w, "")
 
 	var formPayload interface{}
 	json.Unmarshal([]byte(r.Form["payload"][0]), &formPayload)
 	formPayloadMap := formPayload.(map[string]interface{})
 
-	fmt.Println(formPayloadMap["action_ts"].(string))
+	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
 
-	mesg := make(map[string]interface{})
-	mesg["channel"] = "CBT56106S"
-	mesg["text"] = "Deployement in Progress"
-	// mesg["ts"] = formPayloadMap["action_ts"].(string)
-	// mesg["as_user"] = true
-
-	// fmt.Println(mesg["ts"])
-
-	mesgByte, _ := json.Marshal(mesg)
-
-	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer(mesgByte))
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Authorization", "Bearer "+SlackAccessToken)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
+	if chatPostMessage(submissionDataMap["channel"].(string), "Deployement in Progress", nil) == false {
+		fmt.Fprintf(w, "Some error occured")
+		w.WriteHeader(500)
 	}
-	defer resp.Body.Close()
-
-	var respBody interface{}
-	json.NewDecoder(resp.Body).Decode(&respBody)
-	fmt.Println(respBody)
-	// if (respBody.(map[string]interface{}))["ok"] == false {
-	// 	fmt.Fprintf(w, "Some error occured, please try again later")
-	// }
 
 }
 

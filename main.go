@@ -5,40 +5,6 @@ import (
 	"net/http"
 )
 
-var jsonInteractive = []byte(`{
-	"trigger_id" : "xxxxx",
-	"dialog": {
-		"callback_id": "deploy-",
-		"title": "Deploy App",
-		"submit_label": "Deploy",
-		"elements": [
-			{
-				"type": "select",
-				"label": "Github Repository",
-				"name": "git_repo",
-				"data_source": "external"
-			},
-			{
-				"type": "select",
-				"label": "Server Name",
-				"name": "server_name",
-				"data_source": "external"
-			},
-			{
-				"label": "DNS Entry prefix",
-				"name": "dns",
-				"type": "text"
-			},
-			{
-				"label": "APP Channel",
-				"name": "channel",
-				"type": "select",
-				"data_source": "channels"
-			}
-			]
-	}
-}`)
-
 func main() {
 
 	initialize()
