@@ -138,12 +138,11 @@ function help () {
 [[ "${__usage+x}" ]] || read -r -d '' __usage <<-'EOF' || true # exits non-zero when EOF encountered
   -u --url   [arg]    Github url for the repository. Required.
   -m --machine  [arg]   Machine to deploy the project. Required.
-  -n --name  [arg] Name of the repository. Required.
+  -b --branch  [arg] Name of the repository. Default="master"
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
-  -1 --one         Do just one thing
 EOF
 
 # shellcheck disable=SC2015
@@ -371,31 +370,31 @@ fi
 ### Runtime
 ##############################################################################
 
-__repo_name=${arg_n}
+__machine_name=${arg_m}
+__repo_url=${arg_u}
+__repo_name=$(basename ${arg_u} .git) #get name of git repository
+__repo_branch=${arg_b}
 __temp_dir=$(mktemp -d)
 __rsa_private_key_path="${HOME}/.ssh/id_rsa"
 chmod -R 755 "${__temp_dir}" # mktemp gives 700 permission by default
 __repo_dir="${__temp_dir}/${__repo_name}"
 mkdir -p "${__repo_dir}" # Create the repo directory
-__machine_name=${arg_m}
-__repo_url=${arg_u}
 __compose_file="docker-compose.yml"
 __env_file=".env"
-<<<<<<< HEAD
-=======
-
->>>>>>> 07b4b5863709c573a97533d8a0693cf69e7bda39
+__default_network="reverseproxy"
 
 ## @brief Pulls repository in the given path
 ## @param $1 repo url to clone.
-## @param $2 repo path to clone into.
+## @param $2 branch name of the git repository.
+## @param $3 path on which to clone the repo.
 pullRepository() {
   local repo_url=${1}
-  local repo_path=${2}
+  local repo_branch=${2}
+  local repo_path=${3}
   pushd "${repo_path}"
-  git clone --depth=1 "${repo_url}" .
+  git clone --depth=1 -b "${repo_branch}" "${repo_url}" .
   chmod -R 755 "${repo_path}"
-  info "Repository successfully pulled - ${repo_url}"
+  info "Repository successfully pulled - ${repo_url} on branch ${repo_branch}"
   popd
 }
 
@@ -475,6 +474,7 @@ deployImage() {
   pushd "${repo_path}"
   eval "$(docker-machine env ${__machine_name})"
   docker-compose pull
+  docker network create -d bridge ${__default_network} || true # create a default network if not present
   docker-compose up --no-build -d
   eval "$(docker-machine env -u)"
   info "Deployment successful"
@@ -490,10 +490,11 @@ cleanup() {
 }
 
 info "Machine: ${__machine_name}"
-info "URL: ${__repo_url}"
+info "Repo: ${__repo_url}"
+info "Branch: ${__repo_branch}"
 info "Name: ${__repo_name}"
 checkServerName "${__machine_name}"
-pullRepository "${__repo_url}" "${__repo_dir}"
+pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}" "${__rsa_private_key_path}"
 buildImage "${__repo_dir}"
