@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func deployHandler(w http.ResponseWriter, r *http.Request) {
+func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	triggerID := r.Form["trigger_id"][0]
 
@@ -41,10 +41,43 @@ func deployHandler(w http.ResponseWriter, r *http.Request) {
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	fmt.Println(r.Form)
-	w.WriteHeader(200)
-	// Need to send a message to the chat using chat.PostMessage and call the
-	// actual deployment code
+	fmt.Println(r.Form["payload"][0])
+
+	fmt.Fprint(w, "")
+
+	var formPayload interface{}
+	json.Unmarshal([]byte(r.Form["payload"][0]), &formPayload)
+	formPayloadMap := formPayload.(map[string]interface{})
+
+	fmt.Println(formPayloadMap["action_ts"].(string))
+
+	mesg := make(map[string]interface{})
+	mesg["channel"] = "CBT56106S"
+	mesg["text"] = "Deployement in Progress"
+	// mesg["ts"] = formPayloadMap["action_ts"].(string)
+	// mesg["as_user"] = true
+
+	// fmt.Println(mesg["ts"])
+
+	mesgByte, _ := json.Marshal(mesg)
+
+	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer(mesgByte))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Authorization", "Bearer "+SlackAccessToken)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	var respBody interface{}
+	json.NewDecoder(resp.Body).Decode(&respBody)
+	fmt.Println(respBody)
+	// if (respBody.(map[string]interface{}))["ok"] == false {
+	// 	fmt.Fprintf(w, "Some error occured, please try again later")
+	// }
+
 }
 
 func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {

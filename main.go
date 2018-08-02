@@ -23,6 +23,17 @@ var jsonInteractive = []byte(`{
 				"label": "Server Name",
 				"name": "server_name",
 				"data_source": "external"
+			},
+			{
+				"label": "DNS Entry prefix",
+				"name": "dns",
+				"type": "text"
+			},
+			{
+				"label": "APP Channel",
+				"name": "channel",
+				"type": "select",
+				"data_source": "channels"
 			}
 			]
 	}
@@ -32,7 +43,7 @@ func main() {
 
 	initialize()
 
-	http.HandleFunc("/slack/commands/deploy/", deployHandler)
+	http.HandleFunc("/slack/commands/deploy/", deployCommandHandler)
 	http.HandleFunc("/slack/interactive/request/", requestHandler)
 	http.HandleFunc("/slack/interactive/data-options/", dataOptionsHandler)
 
