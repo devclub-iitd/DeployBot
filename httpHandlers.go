@@ -60,10 +60,14 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
 
+	// fmt.Println(submissionDataMap)
+
 	if chatPostMessage(submissionDataMap["channel"].(string), "Deployement in Progress", nil) == false {
 		fmt.Fprintf(w, "Some error occured")
 		w.WriteHeader(500)
+		return
 	}
+	deployApp(submissionDataMap)
 
 }
 
