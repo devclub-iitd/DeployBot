@@ -15,5 +15,7 @@ func main() {
 
 	http.HandleFunc("/github/repo/", repoHandler)
 
-	log.Fatal(http.ListenAndServe(":7777", nil))
+	http.HandleFunc("/logs/", logHandler)
+
+	log.Fatal(http.ListenAndServe(":"+Port, nil))
 }

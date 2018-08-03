@@ -14,7 +14,7 @@ __repo_name=$(basename ${__repo_url} .git) #get name of git repository
 __temp_dir=$(mktemp -d)
 __repo_dir="${__temp_dir}/${__repo_name}"
 mkdir -p "${__repo_dir}"
-__access_email="aman71197@gmail.com"
+__access_email="devclub.iitd@gmail.com"
 
 __hooks_repo_url="https://github.com/devclub-iitd/ServerConfig.git"
 __hooks_repo_name=$(basename ${__repo_url} .git)

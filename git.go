@@ -44,7 +44,7 @@ func getGitRepos() {
 	for _, repoInterface := range repoList.([]interface{}) {
 		repoMap := repoInterface.(map[string]interface{})
 		repoName := repoMap["name"].(string)
-		repoURL := repoMap["html_url"].(string)
+		repoURL := repoMap["ssh_url"].(string)
 
 		Repositories = append(Repositories, Repo{
 			Name: repoName,
@@ -80,22 +80,21 @@ func validateRequestGit(r *http.Request) bool {
 	return false
 }
 
-func parseRepoEvent(msg interface{}) string {
+func parseRepoEvent(msg interface{}) (string, string) {
 
 	payloadMap := msg.(map[string]interface{})
 	action := payloadMap["action"].(string)
 	if action != "created" {
-		return "None"
+		return "", "None"
 	}
-	URL := (payloadMap["repository"].(map[string]interface{}))["clone_url"].(string)
-	return URL
+	repoMap := payloadMap["repository"].(map[string]interface{})
+	repoURL := repoMap["clone_url"].(string)
+	repoName := repoMap["name"].(string)
+	return repoName, repoURL
 }
 
 func addHooks(repoURL string) ([]byte, error) {
 
 	output, err := exec.Command(HooksScriptName, repoURL).CombinedOutput()
-	if err != nil {
-		return nil, err
-	}
-	return output, nil
+	return output, err
 }

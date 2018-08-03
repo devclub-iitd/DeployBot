@@ -1,6 +1,28 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"path"
+)
+
+// DeployCount is the global number of deploy requests handled
+var DeployCount = 0
+
+// HooksScriptName is the name of script used to setup hooks
+const (
+	HooksScriptName  = "./scripts/hooks.sh"
+	DeployScriptName = "./scripts/deploy.sh"
+	DefaultBranch    = "master"
+)
+
+// LogDir is the place where all the logs are stored
+var LogDir = getenv("LOG_DIR", "/var/logs/deploybot/")
+
+// ServerURL is the URL at which the server is listening to requests
+var ServerURL = getenv("SERVER_URL", "https://listen.devclub.in")
+
+// Port is the HTTP Port on which the go code will listen
+var Port = getenv("PORT", "7777")
 
 // OrganizationName is the name of the organization from which apps will be
 // deployed. This is the github organization which will be looked for events
@@ -34,11 +56,6 @@ var SlackGeneralChannelID = getenv("SLACK_GENERAL_CHANNEL_ID", "C4Q43PCN5")
 type Repo struct {
 	Name string `json:"repo_name"`
 	URL  string `json:"url"`
-	// Branches are the branches of the git repo
-	Branches []string `json:"branches"`
-	// Maintainers array is the list of slack usernames of the people
-	// responsible for that project
-	Maintainers []string `json:"maintainers"`
 }
 
 // Repositories is the list of repositories that we have on our git repo
@@ -47,14 +64,14 @@ var Repositories []Repo
 // Server is the type storing the information about our server names and their
 // IP
 type Server struct {
-	Name string `json:"label"`
-	IP   string `json:"value"`
+	Name       string `json:"label"`
+	DeployName string `json:"value"`
 }
 
 // ServersList is the list of all the servers that we have
 var ServersList = []Server{
-	Server{"Baadal", "10.17.51.99"},
-	Server{"AWS", "13.127.68.152"},
+	Server{"Deploy1", "deploy1"},
+	Server{"Deploy2", "deploy2"},
 }
 
 // ServerOptionsByte is the byte array of the options of server
@@ -92,6 +109,9 @@ func initialize() {
 		panic(err)
 	}
 
+	createDirIfNotExist(path.Join(LogDir, "deploy"))
+	createDirIfNotExist(path.Join(LogDir, "git"))
+
 }
 
 // DialogMenu is the format of the menu that will displayed for deploy dialog
@@ -125,9 +145,3 @@ var DialogMenu = []byte(`{
 		}
 	]
 }`)
-
-// DeployCount is the global number of deploy requests handled
-var DeployCount = 0
-
-// HooksScriptName is the name of script used to setup hooks
-const HooksScriptName = "./scripts/hooks.sh"

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
+	"strings"
 )
 
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +45,7 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 
+	fmt.Println("Got a deploy request")
 	if validateRequestSlack(r) {
 		fmt.Println("Request verification from slack SUCCESS")
 	} else {
@@ -66,11 +69,18 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
+	fmt.Println("Beginning Deployment of ", submissionDataMap["git_repo"])
 	deployOut, err := DeployApp(submissionDataMap)
+
+	writeToFile(path.Join(LogDir, "deploy",
+		formPayloadMap["callback_id"].(string)+".txt"), string(deployOut))
 	if err != nil {
 		if chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+
-				" FAILED\n"+string(deployOut), nil) == false {
+				" FAILED\n\n  "+"See logs at: "+ServerURL+"/logs/deploy/"+
+				formPayloadMap["callback_id"].(string)+".txt", nil) == false {
+
+			fmt.Println("Deployment Failed")
 			fmt.Fprintf(w, "Some error occured")
 			w.WriteHeader(500)
 			return
@@ -78,7 +88,9 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+
-				" Successful\n", nil) == false {
+				" Successful\n\n  "+"See logs at: "+ServerURL+"/logs/deploy/"+
+				formPayloadMap["callback_id"].(string)+".txt", nil) == false {
+			fmt.Println("Deployment Succeeded")
 			fmt.Fprintf(w, "Some error occured")
 			w.WriteHeader(500)
 			return
@@ -105,6 +117,9 @@ func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func repoHandler(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Println("Got a Repository creation event")
+
 	if validateRequestGit(r) {
 		fmt.Println("Request verification from Github SUCCESS")
 	} else {
@@ -128,20 +143,39 @@ func repoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	URL := parseRepoEvent(msg)
+	repoName, repoURL := parseRepoEvent(msg)
 
-	if URL == "None" {
+	if repoURL == "None" {
 		fmt.Fprintf(w, "")
 		return
 	}
 
-	_, err = addHooks(URL)
+	fmt.Println("Beginning Initialization of ", repoURL)
+
+	gitOut, err := addHooks(repoURL)
+
+	writeToFile(path.Join(LogDir, "git", repoName+".txt"), string(gitOut))
 
 	if err != nil {
 		_ = chatPostMessage(SlackGeneralChannelID,
-			"Initialization of new repo - "+URL+" FAILED", nil)
+			"Initialization of new repo - "+repoURL+" FAILED\n\n  "+
+				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)
+		fmt.Println("Initialization Failed")
+
 	} else {
 		_ = chatPostMessage(SlackGeneralChannelID,
-			"Initialization of new repo - "+URL+" SUCCESS", nil)
+			"Initialization of new repo - "+repoURL+" SUCCESS\n\n  "+
+				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)
+		fmt.Println("Initialization Succeeded")
 	}
+}
+
+func logHandler(w http.ResponseWriter, r *http.Request) {
+
+	filename := strings.TrimPrefix(r.URL.Path, "/logs/")
+	filename = strings.TrimSuffix(filename, "/")
+
+	fmt.Println(path.Join(LogDir, filename))
+	http.ServeFile(w, r, path.Join(LogDir, filename))
+
 }

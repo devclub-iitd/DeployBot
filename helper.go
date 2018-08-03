@@ -34,3 +34,22 @@ func getHash(payload string, secret string, hashType string) string {
 	hash := hex.EncodeToString(h.Sum(nil))
 	return hash
 }
+
+func writeToFile(filePath string, text string) {
+	f, err := os.Create(filePath)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	_, err = f.WriteString(text + "\n")
+	f.Sync()
+}
+
+func createDirIfNotExist(dir string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
