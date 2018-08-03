@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"path"
 )
 
@@ -88,4 +89,13 @@ func parseRepoEvent(msg interface{}) string {
 	}
 	URL := (payloadMap["repository"].(map[string]interface{}))["clone_url"].(string)
 	return URL
+}
+
+func addHooks(repoURL string) ([]byte, error) {
+
+	output, err := exec.Command(HooksScriptName, repoURL).CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+	return output, nil
 }

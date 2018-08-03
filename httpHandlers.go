@@ -60,14 +60,30 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
 
-	// fmt.Println(submissionDataMap)
-
-	if chatPostMessage(submissionDataMap["channel"].(string), "Deployment in Progress", nil) == false {
+	if chatPostMessage(submissionDataMap["channel"].(string),
+		"Deployment in Progress", nil) == false {
 		fmt.Fprintf(w, "Some error occured")
 		w.WriteHeader(500)
 		return
 	}
-	deployApp(submissionDataMap)
+	deployOut, err := DeployApp(submissionDataMap)
+	if err != nil {
+		if chatPostMessage(submissionDataMap["channel"].(string),
+			"Deployment of "+submissionDataMap["git_repo"].(string)+
+				" FAILED\n"+string(deployOut), nil) == false {
+			fmt.Fprintf(w, "Some error occured")
+			w.WriteHeader(500)
+			return
+		}
+	} else {
+		if chatPostMessage(submissionDataMap["channel"].(string),
+			"Deployment of "+submissionDataMap["git_repo"].(string)+
+				" Successful\n", nil) == false {
+			fmt.Fprintf(w, "Some error occured")
+			w.WriteHeader(500)
+			return
+		}
+	}
 
 }
 
@@ -112,10 +128,20 @@ func repoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println(r)
-	// fmt.Println(msg)
 	URL := parseRepoEvent(msg)
 
-	fmt.Println(URL)
+	if URL == "None" {
+		fmt.Fprintf(w, "")
+		return
+	}
 
+	_, err = addHooks(URL)
+
+	if err != nil {
+		_ = chatPostMessage(SlackGeneralChannelID,
+			"Initialization of new repo - "+URL+" FAILED", nil)
+	} else {
+		_ = chatPostMessage(SlackGeneralChannelID,
+			"Initialization of new repo - "+URL+" SUCCESS", nil)
+	}
 }

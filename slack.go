@@ -23,7 +23,8 @@ func validateRequestSlack(r *http.Request) bool {
 	stringsToJoin = append(stringsToJoin, ts)
 	stringsToJoin = append(stringsToJoin, bodyString)
 
-	sha := getHash(strings.Join(stringsToJoin, ":"), SlackSigningSecret, "sha256")
+	sha := getHash(strings.Join(stringsToJoin, ":"), SlackSigningSecret,
+		"sha256")
 
 	if ("v0=" + sha) == sig {
 		return true
@@ -31,7 +32,8 @@ func validateRequestSlack(r *http.Request) bool {
 	return false
 }
 
-func chatPostMessage(channelID string, text string, payload map[string]interface{}) bool {
+func chatPostMessage(channelID string, text string,
+	payload map[string]interface{}) bool {
 
 	if payload == nil {
 		payload = make(map[string]interface{})
@@ -42,7 +44,8 @@ func chatPostMessage(channelID string, text string, payload map[string]interface
 
 	payloadByte, _ := json.Marshal(payload)
 
-	req, err := http.NewRequest("POST", SlackPostMessageURL, bytes.NewBuffer(payloadByte))
+	req, err := http.NewRequest("POST", SlackPostMessageURL,
+		bytes.NewBuffer(payloadByte))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Authorization", "Bearer "+SlackAccessToken)
 	client := &http.Client{}
@@ -68,7 +71,8 @@ func dialogOpen(payload map[string]interface{}) bool {
 
 	payloadByte, _ := json.Marshal(payload)
 
-	req, err := http.NewRequest("POST", SlackDialogURL, bytes.NewBuffer(payloadByte))
+	req, err := http.NewRequest("POST", SlackDialogURL,
+		bytes.NewBuffer(payloadByte))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Authorization", "Bearer "+SlackAccessToken)
 	client := &http.Client{}

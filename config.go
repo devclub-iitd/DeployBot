@@ -20,10 +20,15 @@ var GithubAPIURL = getenv("GITHUB_API_URL", "https://api.github.com")
 var GithubSecret = getenv("GITHUB_SECRET", "None")
 
 // SlackDialogURL is the url of the dialog API of slack
-var SlackDialogURL = getenv("SLACK_DIALOG_URL", "https://api.slack.com/api/dialog.open")
+var SlackDialogURL = getenv("SLACK_DIALOG_URL",
+	"https://api.slack.com/api/dialog.open")
 
 // SlackPostMessageURL is the url of the chat post message API of slack
-var SlackPostMessageURL = getenv("SLACK_DIALOG_URL", "https://api.slack.com/api/chat.postMessage")
+var SlackPostMessageURL = getenv("SLACK_DIALOG_URL",
+	"https://api.slack.com/api/chat.postMessage")
+
+// SlackGeneralChannelID is the url of the chat post message API of slack
+var SlackGeneralChannelID = getenv("SLACK_GENERAL_CHANNEL_ID", "C4Q43PCN5")
 
 // Repo is the type that is used to store information about a repository
 type Repo struct {
@@ -123,3 +128,6 @@ var DialogMenu = []byte(`{
 
 // DeployCount is the global number of deploy requests handled
 var DeployCount = 0
+
+// HooksScriptName is the name of script used to setup hooks
+const HooksScriptName = "./scripts/hooks.sh"
