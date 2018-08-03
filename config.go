@@ -16,6 +16,9 @@ var SlackSigningSecret = getenv("SLACK_SIGNING_SECRET", "None")
 // GithubAPIURL is the url at which all APIs of github are rooted
 var GithubAPIURL = getenv("GITHUB_API_URL", "https://api.github.com")
 
+// GithubSecret is the secret used to verify that requests come from Github
+var GithubSecret = getenv("GITHUB_SECRET", "None")
+
 // SlackDialogURL is the url of the dialog API of slack
 var SlackDialogURL = getenv("SLACK_DIALOG_URL", "https://api.slack.com/api/dialog.open")
 
@@ -63,11 +66,15 @@ var RepoOptionsByte []byte
 
 func initialize() {
 	if SlackAccessToken == "None" {
-		panic("Slack Access Token is not present\nExiting\n")
+		panic("Slack Access Token is not present in env\nExiting\n")
 	}
 
 	if SlackSigningSecret == "None" {
-		panic("Slack Signing Secret is not present\nExiting\n")
+		panic("Slack Signing Secret is not present in env\nExiting\n")
+	}
+
+	if GithubSecret == "None" {
+		panic("Github Secret is not present in env\nExiting\n")
 	}
 
 	getGitRepos()

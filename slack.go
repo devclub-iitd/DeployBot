@@ -2,16 +2,13 @@ package main
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
-func validateRequest(r *http.Request) bool {
+func validateRequestSlack(r *http.Request) bool {
 
 	ts := r.Header["X-Slack-Request-Timestamp"][0]
 	sig := r.Header["X-Slack-Signature"][0]
@@ -21,15 +18,12 @@ func validateRequest(r *http.Request) bool {
 
 	bodyString := string(bodyBytes)
 
-	h := hmac.New(sha256.New, []byte(SlackSigningSecret))
-
 	stringsToJoin := []string{}
 	stringsToJoin = append(stringsToJoin, "v0")
 	stringsToJoin = append(stringsToJoin, ts)
 	stringsToJoin = append(stringsToJoin, bodyString)
 
-	h.Write([]byte(strings.Join(stringsToJoin, ":")))
-	sha := hex.EncodeToString(h.Sum(nil))
+	sha := getHash(strings.Join(stringsToJoin, ":"), SlackSigningSecret, "sha256")
 
 	if ("v0=" + sha) == sig {
 		return true

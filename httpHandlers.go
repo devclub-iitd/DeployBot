@@ -10,7 +10,7 @@ import (
 
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
-	if validateRequest(r) {
+	if validateRequestSlack(r) {
 		fmt.Println("Request verification from slack SUCCESS")
 	} else {
 		fmt.Println("Request verification from slack FAILED")
@@ -43,7 +43,7 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 
-	if validateRequest(r) {
+	if validateRequestSlack(r) {
 		fmt.Println("Request verification from slack SUCCESS")
 	} else {
 		fmt.Println("Request verification from slack FAILED")
@@ -62,7 +62,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	// fmt.Println(submissionDataMap)
 
-	if chatPostMessage(submissionDataMap["channel"].(string), "Deployement in Progress", nil) == false {
+	if chatPostMessage(submissionDataMap["channel"].(string), "Deployment in Progress", nil) == false {
 		fmt.Fprintf(w, "Some error occured")
 		w.WriteHeader(500)
 		return
@@ -89,6 +89,14 @@ func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func repoHandler(w http.ResponseWriter, r *http.Request) {
+	if validateRequestGit(r) {
+		fmt.Println("Request verification from Github SUCCESS")
+	} else {
+		fmt.Println("Request verification from Github FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
 	b, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -104,9 +112,10 @@ func repoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(r)
-	fmt.Println(msg)
-	w.WriteHeader(200)
-	// Need to send a message to the chat using chat.PostMessage and call the
-	// actual deployment code
+	// fmt.Println(r)
+	// fmt.Println(msg)
+	URL := parseRepoEvent(msg)
+
+	fmt.Println(URL)
+
 }

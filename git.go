@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -58,4 +60,32 @@ func getGitRepos() {
 		panic(err)
 	}
 
+}
+
+func validateRequestGit(r *http.Request) bool {
+
+	sig := r.Header["X-Hub-Signature"][0]
+	bodyBytes, _ := ioutil.ReadAll(r.Body)
+	dupReader := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	r.Body = dupReader
+
+	bodyString := string(bodyBytes)
+
+	sha := getHash(bodyString, GithubSecret, "sha1")
+
+	if ("sha1=" + sha) == sig {
+		return true
+	}
+	return false
+}
+
+func parseRepoEvent(msg interface{}) string {
+
+	payloadMap := msg.(map[string]interface{})
+	action := payloadMap["action"].(string)
+	if action != "created" {
+		return "None"
+	}
+	URL := (payloadMap["repository"].(map[string]interface{}))["clone_url"].(string)
+	return URL
 }
