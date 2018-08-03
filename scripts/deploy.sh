@@ -403,7 +403,9 @@ pullRepository() {
 checkServerName() {
   local server_name=${1}
   info "Checking server name - ${server_name}"
-  if docker-machine ls --format "{{.Name}}" | grep -Fxq "$server_name"; then
+  docker-machine ls --format "{{.Name}}" | grep -Fxq "$server_name"
+  local result=$?
+  if [ ${result} -eq 0 ] ; then
     info "server name is correct"
   else
     error "Invalid server name"
@@ -500,4 +502,4 @@ decryptEnv "${__repo_dir}" "${__rsa_private_key_path}"
 buildImage "${__repo_dir}"
 pushImage "${__repo_dir}"
 deployImage "${__repo_dir}"
-cleanup "${__repo_dir}"
+cleanup "${__temp_dir}"
