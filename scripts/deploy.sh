@@ -97,7 +97,6 @@ function __b3bp_log () {
     echo -e "$(date -u +"%Y-%m-%d %H:%M:%S UTC") ${color}$(printf "[%9s]" "${log_level}")${color_reset} ${log_line}" 1>&2
   done <<< "${@:-}"
 }
-
 function emergency () {                                __b3bp_log emergency "${@}"; exit 1; }
 function alert ()     { [[ "${LOG_LEVEL:-0}" -ge 1 ]] && __b3bp_log alert "${@}"; true; }
 function critical ()  { [[ "${LOG_LEVEL:-0}" -ge 2 ]] && __b3bp_log critical "${@}"; true; }
@@ -374,8 +373,20 @@ __machine_name=${arg_m}
 __repo_url=${arg_u}
 __repo_name=$(basename ${arg_u} .git) #get name of git repository
 __repo_branch=${arg_b}
-__temp_dir=$(mktemp -d)
-__rsa_private_key_path="${HOME}/.ssh/id_rsa"
+__build_volume="deploybot_builder" # named volume that is shared between the current docker container and the
+                        # future docker-compose container
+__build_mount="/scratch/" # location at which build volume is mounted
+__conf_volume="deploybot_docker_conf" # named volume that contains docker configuration
+__conf_mount="/root/.docker" # location at which conf volume is mounted
+__temp_dir="${__build_mount}/${RANDOM}/" # scratch is important here, since this ought to be an external volume
+                                 # which will be shared betweent the docker-compose container and this
+                                 # container
+mkdir -p ${__temp_dir}
+
+__compose_command="custom-docker-compose"
+__build_arg="-v ${__build_volume}:${__build_mount}" # VOLUME args to be given at build time to docker-compose
+__push_arg="${__build_arg} -v ${__conf_volume}:${__conf_mount}" # VOLUME args to be given at build time to docker-compose
+
 chmod -R 755 "${__temp_dir}" # mktemp gives 700 permission by default
 __repo_dir="${__temp_dir}/${__repo_name}"
 mkdir -p "${__repo_dir}" # Create the repo directory
@@ -431,13 +442,12 @@ analyzeRepository() {
 
 ## @brief decrypt the env file in the cloned git repository
 ## @param $1 path to repo
-## @param $2 path to private key for decryption
 decryptEnv() {
   local repo_path=${1}
   local env_path="${1}/${__env_file}"
   if [ ! -f "${env_path}" ]; then
     pushd ${repo_path}
-    git secret reveal -f -p ${GITSECRETPASS:-"default"}
+    git secret reveal -f -p ${GPGSECRETPASS:-"default"}
     info "Decryption of environment variables successful"
     popd
   else
@@ -449,12 +459,10 @@ decryptEnv() {
 ## @brief create the image of the repo
 ## @param $1 path to repo
 buildImage() {
-  ## TODO: This poses a SERIOUS security risk as we are allowing arbitrary
-  ## docker images to be built without any security. Find a BETTER solution
-  ## for this.
   local repo_path=${1}
   pushd "${repo_path}"
-  docker-compose build
+  ## This assumes that we are inside ${__volume_mount}
+  VOLUMES=${__build_arg} ${__compose_command} build
   popd
   info "building image successfull"
 }
@@ -464,7 +472,8 @@ buildImage() {
 pushImage() {
   local repo_path=${1}
   pushd "${repo_path}"
-  docker-compose push
+  ## This assumes that we are inside ${__volume_mount}
+  VOLUMES=${__push_arg} ${__compose_command} build
   info "Build image pushed"
   popd
 }
@@ -474,11 +483,14 @@ pushImage() {
 deployImage() {
   local repo_path=$1
   pushd "${repo_path}"
-  eval "$(docker-machine env ${__machine_name})"
-  docker-compose pull
+  eval "$(docker-machine env ${__machine_name} --shell bash)"
+  ## NOTE: here we are using the usual docker-compose container as it
+  # respects the DOCKER_HOST environment variable and we didn't need any special
+  # functions like shared building image etc.
+  VOLUMES=${__push_arg} ${__compose_command} pull
   docker network create -d bridge ${__default_network} || true # create a default network if not present
-  docker-compose up --no-build -d
-  eval "$(docker-machine env -u)"
+  VOLUMES=${__push_arg} ${__compose_command} up -d
+  eval "$(docker-machine env --shell bash -u)"
   info "Deployment successful"
   popd
 }
@@ -498,7 +510,7 @@ info "Name: ${__repo_name}"
 checkServerName "${__machine_name}"
 pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
-decryptEnv "${__repo_dir}" "${__rsa_private_key_path}"
+decryptEnv "${__repo_dir}"
 buildImage "${__repo_dir}"
 pushImage "${__repo_dir}"
 deployImage "${__repo_dir}"

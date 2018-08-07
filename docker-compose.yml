@@ -1,0 +1,49 @@
+version: '3.4'
+services:
+  deploy:
+    build: ./
+    ports:
+     - "80"
+    image: "devclubiitd/deploy:${TAG:-0.1}"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - type: volume
+        source: builder
+        target: /scratch
+      - type: volume
+        source: docker_conf
+        target: /root/.docker
+        read_only: true
+      - type: bind
+        source: ./ignore/keys
+        target: /keys
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    labels:
+      - "in.devclub=Deploy Container"
+    logging:
+      options:
+        max-size: '12m'
+        max-file: '5'
+      driver: json-file
+    restart: unless-stopped
+    networks:
+      - "internal"
+volumes:
+    builder:
+      labels:
+          - "in.devclub=builder volume for deploy bot"
+    docker_conf:
+      labels:
+          - "in.devclub=configuration volume for deploy bot"
+networks:
+  internal:

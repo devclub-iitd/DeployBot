@@ -12,21 +12,21 @@ set -o pipefail
 # set -o xtrace
 
 
-## Install docker machine things
-pushd /config/
-for config in ls *.zip; do
-    docker-machine-import.sh $PWD/${config}
-done
-popd
-
 ## Set git username
 git config --global user.email devclub.iitd@gmail.com
 git config --global user.name "DevClub IITD"
 
 ## Set git ssh key
 eval "$(ssh-agent -s)"
-ssh-add /root/.ssh/id_rsa
+ssh-add /keys/id_rsa
+mkdir -p /root/.ssh/
 ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 ## Install gnupg
-gpg --pinentry-mode=loopback --passphrase $GPGSECRETPASS --import ./gpg_private.asc
+gpg --pinentry-mode=loopback --passphrase $GPGSECRETPASS --import /keys/gpg_private.asc
+
+
+## RUN go server
+
+## infinite loop
+while true; do sleep 12 ; echo "foreground"; done

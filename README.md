@@ -28,3 +28,6 @@ Deployment Management Bot
 * Deployment server
     - listen to deploy messages from central server
     - calls appropriate script to deploy
+
+## USEFUL Command:
+docker-machine -D create -d generic --generic-ip-address vm1.suyash.science --generic-ssh-key ~/.ssh/temp_vm.pem --generic-ssh-user ubuntu --generic-ssh-port 22 --generic-engine-port 42376 vm1
