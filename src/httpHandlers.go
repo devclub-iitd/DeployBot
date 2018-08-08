@@ -8,14 +8,18 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
+	log.Infof("/deploy command called on slack")
+
 	if validateRequestSlack(r) {
-		fmt.Println("Request verification from slack SUCCESS")
+		log.Info("Request verification from slack: SUCCESS")
 	} else {
-		fmt.Println("Request verification from slack FAILED")
+		log.Warn("Request verification from slack: FAILED")
 		w.WriteHeader(403)
 		return
 	}
@@ -36,8 +40,9 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 	dialogMesg["trigger_id"] = triggerID
 	dialogMesg["dialog"] = dialogJSON
 
+	log.Info("Created a dialog Message, Beginning to send it")
 	if dialogOpen(dialogMesg) == false {
-		fmt.Fprintf(w, "Some error occured")
+		log.Warn("Some error occured")
 		w.WriteHeader(500)
 	}
 
@@ -45,17 +50,18 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Got a deploy request")
+	log.Info("Recieved a deploy request from slack")
 	if validateRequestSlack(r) {
-		fmt.Println("Request verification from slack SUCCESS")
+		log.Info("Request verification from slack: SUCCESS")
 	} else {
-		fmt.Println("Request verification from slack FAILED")
+		log.Warn("Request verification from slack: FAILED")
 		w.WriteHeader(403)
 		return
 	}
 
 	r.ParseForm()
 	fmt.Fprint(w, "")
+	w.WriteHeader(200)
 
 	var formPayload interface{}
 	json.Unmarshal([]byte(r.Form["payload"][0]), &formPayload)
@@ -63,43 +69,21 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
 
-	if chatPostMessage(submissionDataMap["channel"].(string),
-		"Deployment in Progress", nil) == false {
-		fmt.Fprintf(w, "Some error occured")
-		w.WriteHeader(500)
-		return
-	}
-	fmt.Println("Beginning Deployment of ", submissionDataMap["git_repo"])
-	deployOut, err := DeployApp(submissionDataMap)
-
-	writeToFile(path.Join(LogDir, "deploy",
-		formPayloadMap["callback_id"].(string)+".txt"), string(deployOut))
-	if err != nil {
-		if chatPostMessage(submissionDataMap["channel"].(string),
-			"Deployment of "+submissionDataMap["git_repo"].(string)+
-				" FAILED\n\n  "+"See logs at: "+ServerURL+"/logs/deploy/"+
-				formPayloadMap["callback_id"].(string)+".txt", nil) == false {
-
-			fmt.Println("Deployment Failed")
-			fmt.Fprintf(w, "Some error occured")
-			w.WriteHeader(500)
-			return
-		}
-	} else {
-		if chatPostMessage(submissionDataMap["channel"].(string),
-			"Deployment of "+submissionDataMap["git_repo"].(string)+
-				" Successful\n\n  "+"See logs at: "+ServerURL+"/logs/deploy/"+
-				formPayloadMap["callback_id"].(string)+".txt", nil) == false {
-			fmt.Println("Deployment Succeeded")
-			fmt.Fprintf(w, "Some error occured")
-			w.WriteHeader(500)
-			return
-		}
-	}
+	go deployGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
 
 }
 
 func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
+
+	log.Info("Recieved a data options request from slack")
+	if validateRequestSlack(r) {
+		log.Info("Request verification from slack: SUCCESS")
+	} else {
+		log.Warn("Request verification from slack: FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
 	r.ParseForm()
 	var payload interface{}
 	err := json.Unmarshal([]byte(r.Form["payload"][0]), &payload)
@@ -109,21 +93,24 @@ func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	payloadMap, _ := payload.(map[string]interface{})
 	optionType, _ := payloadMap["name"].(string)
 
+	log.Infof("Data-options requested %s", optionType)
 	if optionType == "server_name" {
 		w.Write(ServerOptionsByte)
 	} else if optionType == "git_repo" {
+		getGitRepos()
 		w.Write(RepoOptionsByte)
 	}
+	log.Info("Data options response sent")
 }
 
 func repoHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Got a Repository creation event")
+	log.Info("Recieved a repository action event")
 
 	if validateRequestGit(r) {
-		fmt.Println("Request verification from Github SUCCESS")
+		log.Info("Request verification from Github: SUCCESS")
 	} else {
-		fmt.Println("Request verification from Github FAILED")
+		log.Info("Request verification from Github: FAILED")
 		w.WriteHeader(403)
 		return
 	}
@@ -150,23 +137,22 @@ func repoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Beginning Initialization of ", repoURL)
+	log.Infof("Beginning Initialization of %s", repoURL)
 
 	gitOut, err := addHooks(repoURL)
 
 	writeToFile(path.Join(LogDir, "git", repoName+".txt"), string(gitOut))
 
 	if err != nil {
+		log.Error("Initialization of git repo FAILED")
 		_ = chatPostMessage(SlackGeneralChannelID,
 			"Initialization of new repo - "+repoURL+" FAILED\n\n  "+
 				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)
-		fmt.Println("Initialization Failed")
-
 	} else {
+		log.Info("Initialization of git repo FAILED")
 		_ = chatPostMessage(SlackGeneralChannelID,
 			"Initialization of new repo - "+repoURL+" SUCCESS\n\n  "+
 				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)
-		fmt.Println("Initialization Succeeded")
 	}
 }
 
@@ -175,7 +161,8 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 	filename := strings.TrimPrefix(r.URL.Path, "/logs/")
 	filename = strings.TrimSuffix(filename, "/")
 
-	fmt.Println(path.Join(LogDir, filename))
+	log.Infof("Serving file %s for /log request", path.Join(LogDir, filename))
+
 	http.ServeFile(w, r, path.Join(LogDir, filename))
 
 }

@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os/exec"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func getGitRepos() {
@@ -19,6 +21,9 @@ func getGitRepos() {
 		panic(err)
 	}
 	u.Path = path.Join(u.Path, "orgs/"+OrganizationName+"/repos")
+
+	log.Info("Sending a HTTP GET request to github.com to get repo lists")
+
 	resp, err := http.Get(u.String())
 	if err != nil {
 		panic(err)
@@ -60,6 +65,7 @@ func getGitRepos() {
 	if err != nil {
 		panic(err)
 	}
+	log.Info("Repo Options successfully set with latest repositories")
 
 }
 
@@ -85,6 +91,7 @@ func parseRepoEvent(msg interface{}) (string, string) {
 	payloadMap := msg.(map[string]interface{})
 	action := payloadMap["action"].(string)
 	if action != "created" {
+		log.Info("Event type is not of repo creation")
 		return "", "None"
 	}
 	repoMap := payloadMap["repository"].(map[string]interface{})
@@ -94,6 +101,8 @@ func parseRepoEvent(msg interface{}) (string, string) {
 }
 
 func addHooks(repoURL string) ([]byte, error) {
+
+	log.Info("Calling %s to initialize hooks for repo", HooksScriptName)
 
 	output, err := exec.Command(HooksScriptName, repoURL).CombinedOutput()
 	return output, err

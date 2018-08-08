@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // DeployCount is the global number of deploy requests handled
@@ -10,8 +13,8 @@ var DeployCount = 0
 
 // HooksScriptName is the name of script used to setup hooks
 const (
-	HooksScriptName  = "./scripts/hooks.sh"
-	DeployScriptName = "./scripts/deploy.sh"
+	HooksScriptName  = "hooks.sh"
+	DeployScriptName = "deploy.sh"
 	DefaultBranch    = "master"
 )
 
@@ -24,10 +27,6 @@ var ServerURL = getenv("SERVER_URL", "https://listen.devclub.in")
 // Port is the HTTP Port on which the go code will listen
 var Port = getenv("PORT", "7777")
 
-// OrganizationName is the name of the organization from which apps will be
-// deployed. This is the github organization which will be looked for events
-var OrganizationName = getenv("ORG_NAME", "devclub-iitd")
-
 // SlackAccessToken is the access token that is used to authenticate the app to
 // communicate with slack
 var SlackAccessToken = getenv("SLACK_ACCESS_TOKEN", "None")
@@ -35,19 +34,23 @@ var SlackAccessToken = getenv("SLACK_ACCESS_TOKEN", "None")
 // SlackSigningSecret is the secret key with which slack signs its request
 var SlackSigningSecret = getenv("SLACK_SIGNING_SECRET", "None")
 
-// GithubAPIURL is the url at which all APIs of github are rooted
-var GithubAPIURL = getenv("GITHUB_API_URL", "https://api.github.com")
-
 // GithubSecret is the secret used to verify that requests come from Github
 var GithubSecret = getenv("GITHUB_SECRET", "None")
 
-// SlackDialogURL is the url of the dialog API of slack
-var SlackDialogURL = getenv("SLACK_DIALOG_URL",
-	"https://api.slack.com/api/dialog.open")
+const (
+	// OrganizationName is the name of the organization from which apps will be
+	// deployed. This is the github organization which will be looked for events
+	OrganizationName = "devclub-iitd"
 
-// SlackPostMessageURL is the url of the chat post message API of slack
-var SlackPostMessageURL = getenv("SLACK_DIALOG_URL",
-	"https://api.slack.com/api/chat.postMessage")
+	// GithubAPIURL is the url at which all APIs of github are rooted
+	GithubAPIURL = "https://api.github.com"
+
+	// SlackDialogURL is the url of the dialog API of slack
+	SlackDialogURL = "https://api.slack.com/api/dialog.open"
+
+	// SlackPostMessageURL is the url of the chat post message API of slack
+	SlackPostMessageURL = "https://api.slack.com/api/chat.postMessage"
+)
 
 // SlackGeneralChannelID is the url of the chat post message API of slack
 var SlackGeneralChannelID = getenv("SLACK_GENERAL_CHANNEL_ID", "C4Q43PCN5")
@@ -87,19 +90,27 @@ type RepoOption struct {
 var RepoOptionsByte []byte
 
 func initialize() {
+
+	log.SetFormatter(&log.TextFormatter{
+		DisableTimestamp: false,
+		FullTimestamp:    true,
+		TimestampFormat:  "Mon Jan _2 15:04:05 2006",
+	})
+
+	// Output to stdout instead of the default stderr
+	log.SetOutput(os.Stdout)
+
 	if SlackAccessToken == "None" {
-		panic("Slack Access Token is not present in env\nExiting\n")
+		log.Fatal("Slack Access Token is not present in environment, Exiting")
 	}
 
 	if SlackSigningSecret == "None" {
-		panic("Slack Signing Secret is not present in env\nExiting\n")
+		log.Fatal("Slack Signing Secret is not present in environment, Exiting")
 	}
 
 	if GithubSecret == "None" {
-		panic("Github Secret is not present in env\nExiting\n")
+		log.Fatal("Github Secret is not present in environment, Exiting")
 	}
-
-	getGitRepos()
 
 	serverOptions := make(map[string]interface{})
 	serverOptions["options"] = ServersList
@@ -109,8 +120,11 @@ func initialize() {
 		panic(err)
 	}
 
+	log.Info("Setting Up Log directory")
 	createDirIfNotExist(path.Join(LogDir, "deploy"))
+	log.Infof("Log directory %s created", path.Join(LogDir, "deploy"))
 	createDirIfNotExist(path.Join(LogDir, "git"))
+	log.Infof("Log directory %s created", path.Join(LogDir, "git"))
 
 }
 
