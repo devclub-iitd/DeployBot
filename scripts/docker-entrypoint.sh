@@ -25,8 +25,8 @@ ssh-keyscan github.com >> /root/.ssh/known_hosts
 ## Install gnupg
 gpg --pinentry-mode=loopback --passphrase $GPGSECRETPASS --import /keys/gpg_private.asc
 
-
 ## RUN go server
+./DeployBot
 
 ## infinite loop
 while true; do sleep 12 ; echo "foreground"; done

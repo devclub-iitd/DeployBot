@@ -3,12 +3,12 @@ services:
   deploy:
     build: ./
     ports:
-     - "80"
+     - "7777:7777"
     image: "devclubiitd/deploy:${TAG:-0.1}"
     env_file:
       - ./.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:7777"]
       interval: 1m30s
       timeout: 10s
       retries: 3
@@ -20,7 +20,7 @@ services:
       - type: volume
         source: docker_conf
         target: /root/.docker
-        read_only: true
+        # read_only: true
       - type: bind
         source: ./ignore/keys
         target: /keys
@@ -32,8 +32,8 @@ services:
       - "in.devclub=Deploy Container"
     logging:
       options:
-        max-size: '12m'
-        max-file: '5'
+        max-size: '20m'
+        max-file: '10'
       driver: json-file
     restart: unless-stopped
     networks:
