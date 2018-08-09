@@ -138,6 +138,7 @@ function help () {
   -u --url   [arg]    Github url for the repository. Required.
   -m --machine  [arg]   Machine to deploy the project. Required.
   -b --branch  [arg] Name of the repository. Default="master"
+  -s --subdomain  [arg] Subdomain of the deployed app. It will default to VIRTUAL_HOST given in docker configuration.
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
@@ -424,6 +425,19 @@ checkServerName() {
   fi
 }
 
+# @brief exports VIRTUAL_HOST to set custom subdomain
+# @param $1 name of subdomain
+# @param $2 name of machine
+populateVirtualHost() {
+  local subdomain=${1}
+  local machine=${2}
+  info "Setting subdomain: ${subdomain}"
+  local ip=$(docker-machine ip ${machine})
+  local domain=${subdomain}.${ip}
+  info "URL: ${domain}"
+  export VIRTUAL_HOST=${domain}
+}
+
 ## @brief Checks if the directory structure is valid or not
 ## @param $1 repository path
 analyzeRepository() {
@@ -484,12 +498,9 @@ deployImage() {
   local repo_path=$1
   pushd "${repo_path}"
   eval "$(docker-machine env ${__machine_name} --shell bash)"
-  ## NOTE: here we are using the usual docker-compose container as it
-  # respects the DOCKER_HOST environment variable and we didn't need any special
-  # functions like shared building image etc.
   VOLUMES=${__push_arg} ${__compose_command} pull
   docker network create -d bridge ${__default_network} || true # create a default network if not present
-  VOLUMES=${__push_arg} ${__compose_command} up -d
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST" ${__compose_command} up -d
   eval "$(docker-machine env --shell bash -u)"
   info "Deployment successful"
   popd
@@ -508,6 +519,10 @@ info "Repo: ${__repo_url}"
 info "Branch: ${__repo_branch}"
 info "Name: ${__repo_name}"
 checkServerName "${__machine_name}"
+if [[ "${arg_s:-}" ]]; then
+  ## If we are giving custom subdomain
+  populateVirtualHost ${arg_s} ${__machine_name}
+fi
 pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}"

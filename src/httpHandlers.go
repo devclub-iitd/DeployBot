@@ -95,6 +95,7 @@ func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("Data-options requested %s", optionType)
 	if optionType == "server_name" {
+		getServers()
 		w.Write(ServerOptionsByte)
 	} else if optionType == "git_repo" {
 		getGitRepos()
