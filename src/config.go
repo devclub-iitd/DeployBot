@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path"
 
@@ -72,10 +71,7 @@ type Server struct {
 }
 
 // ServersList is the list of all the servers that we have
-var ServersList = []Server{
-	Server{"Deploy1", "deploy1"},
-	Server{"Deploy2", "deploy2"},
-}
+var ServersList []Server
 
 // ServerOptionsByte is the byte array of the options of server
 var ServerOptionsByte []byte
@@ -112,19 +108,14 @@ func initialize() {
 		log.Fatal("Github Secret is not present in environment, Exiting")
 	}
 
-	serverOptions := make(map[string]interface{})
-	serverOptions["options"] = ServersList
-	var err error
-	ServerOptionsByte, err = json.Marshal(serverOptions)
-	if err != nil {
-		panic(err)
-	}
-
 	log.Info("Setting Up Log directory")
 	createDirIfNotExist(path.Join(LogDir, "deploy"))
 	log.Infof("Log directory %s created", path.Join(LogDir, "deploy"))
 	createDirIfNotExist(path.Join(LogDir, "git"))
 	log.Infof("Log directory %s created", path.Join(LogDir, "git"))
+
+	log.Info("Getting Servers Info")
+	getServers()
 
 }
 
@@ -147,8 +138,8 @@ var DialogMenu = []byte(`{
 			"data_source": "external"
 		},
 		{
-			"label": "DNS Entry prefix",
-			"name": "dns",
+			"label": "Subdomain",
+			"name": "subdomain",
 			"type": "text"
 		},
 		{
