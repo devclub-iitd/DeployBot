@@ -14,11 +14,11 @@
 
 
 set -e
-# set -o xtrace
+#set -o xtrace
 
 VERSION="1.22.0"
 IMAGE="docker/compose:$VERSION"
-echo $VOLUMES
+echo "Using volumes: ${VOLUMES}"
 
 
 # Setup options for connecting to docker host
