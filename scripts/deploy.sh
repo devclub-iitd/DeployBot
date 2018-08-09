@@ -393,6 +393,7 @@ __repo_dir="${__temp_dir}/${__repo_name}"
 mkdir -p "${__repo_dir}" # Create the repo directory
 __compose_file="docker-compose.yml"
 __env_file=".env"
+__env_file_secret=".env.secret"
 __default_network="reverseproxy"
 
 ## @brief Pulls repository in the given path
@@ -458,8 +459,9 @@ analyzeRepository() {
 ## @param $1 path to repo
 decryptEnv() {
   local repo_path=${1}
+  local env_path_secret="${1}/${__env_file_secret}"
   local env_path="${1}/${__env_file}"
-  if [ ! -f "${env_path}" ]; then
+  if [ -f "${env_path_secret}" ]; then
     pushd ${repo_path}
     git secret reveal -f -p ${GPGSECRETPASS:-"default"}
     info "Decryption of environment variables successful"

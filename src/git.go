@@ -95,14 +95,14 @@ func parseRepoEvent(msg interface{}) (string, string) {
 		return "", "None"
 	}
 	repoMap := payloadMap["repository"].(map[string]interface{})
-	repoURL := repoMap["clone_url"].(string)
+	repoURL := repoMap["ssh_url"].(string)
 	repoName := repoMap["name"].(string)
 	return repoName, repoURL
 }
 
 func addHooks(repoURL string) ([]byte, error) {
 
-	log.Info("Calling %s to initialize hooks for repo", HooksScriptName)
+	log.Infof("Calling %s to initialize hooks for repo", HooksScriptName)
 
 	output, err := exec.Command(HooksScriptName, repoURL).CombinedOutput()
 	return output, err
