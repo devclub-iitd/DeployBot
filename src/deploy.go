@@ -67,9 +67,10 @@ func getServers() {
 	}
 	machines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, el := range machines {
+		elTrimmed := strings.TrimSpace(el)
 		ServersList = append(ServersList, Server{
-			Name:       strings.Title(el),
-			DeployName: el,
+			Name:       strings.Title(elTrimmed),
+			DeployName: elTrimmed,
 		})
 	}
 	log.Info("Servers Present: ", ServersList)
