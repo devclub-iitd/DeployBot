@@ -18,8 +18,9 @@ git config --global user.name "DevClub IITD"
 
 ## Set git ssh key
 eval "$(ssh-agent -s)"
-ssh-add /keys/id_rsa
 mkdir -p /root/.ssh/
+cp /keys/id_rsa /root/.ssh/
+ssh-add /root/.ssh/id_rsa
 ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 ## Install gnupg

@@ -361,7 +361,6 @@ fi
 ### Validation. Error out if the things required for your script are not present
 ##############################################################################
 
-[[ "${arg_n:-}" ]]     || help      "Setting a repo name with -n or --name is required"
 [[ "${arg_m:-}" ]]     || help      "Setting a machine name with -m or --machine is required"
 [[ "${arg_u:-}" ]]     || help      "Setting a repo url with -u or --url is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
@@ -416,7 +415,7 @@ pullRepository() {
 checkServerName() {
   local server_name=${1}
   info "Checking server name - ${server_name}"
-  docker-machine ls --format "{{.Name}}" | grep -Fxq "$server_name"
+  docker-machine ls --format "{{.Name}}" | grep "${server_name}"
   local result=$?
   if [ ${result} -eq 0 ] ; then
     info "server name is correct"
