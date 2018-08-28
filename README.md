@@ -40,7 +40,7 @@ GPGSECRETPASS=<GPG passphrase>
 If initial setup has been done once, then just running `docker-compose up -d` will start the deploybot service. The bot will listen to incoming connections on port `7777` by default.
 
 # Sample project configuration
-- Each project should have a `.env` file for environment variables which should be encrypted using `git-secret` with `devclubiitd` user as collaborator. `devclubiitd`'s public gpg key can be found [here](https://api.github.com/users/devclubiitd/gpg_keys)
+- Each project should have a `.env` file for environment variables which should be encrypted using `git-secret` with `devclubiitd` user as collaborator. `devclubiitd`'s public gpg key can be found [here](https://github.com/devclubiitd.gpg)
 - Each project should have `docker-compose.yml` to build their projects.
 - Sample `docker-compose.yml` is given here with name `sample_docker-compose.yml`.
 
