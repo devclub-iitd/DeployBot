@@ -1,0 +1,55 @@
+version: '3.4'
+services:
+  web:
+    build: ./folder
+    # build: https://www.github.com/ozym4nd145/TestDocker1.git#:folder
+    ports:
+     - "5000"
+    image: "devclubiitd/test1:${TAG:-0.6}"
+    depends_on:
+      - redis
+    env_file:
+      - ./test.env
+    environment:
+      - DEBUG # Take DEBUG variable from environment
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "in.devclub=Test Flash App 1"
+    volumes:
+      - type: volume
+        source: mydata
+        target: /data
+        volume:
+          nocopy: true
+      # - type: bind
+      #   source: ./folder
+      #   target: /source
+      #   read_only: true
+    logging:
+      options:
+        max-size: '12m'
+        max-file: '5'
+      driver: json-file
+    restart: unless-stopped
+    networks:
+      - "internal"
+      - "reverseproxy"
+  redis:
+    image: "redis:alpine"
+    restart: unless-stopped
+    networks:
+      - "internal"
+volumes:
+    mydata:
+      labels:
+          - "in.devclub=Test mydata volume"
+networks:
+  reverseproxy:
+    external:
+      name: "reverseproxy"
+  internal:

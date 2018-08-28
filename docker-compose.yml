@@ -20,7 +20,7 @@ services:
       - type: volume
         source: docker_conf
         target: /root/.docker
-        # read_only: true
+        read_only: true
       - type: bind
         source: ./ignore/keys
         target: /keys
