@@ -488,7 +488,7 @@ pushImage() {
   local repo_path=${1}
   pushd "${repo_path}"
   ## This assumes that we are inside ${__volume_mount}
-  VOLUMES=${__push_arg} ${__compose_command} build
+  VOLUMES=${__push_arg} ${__compose_command} push
   info "Build image pushed"
   popd
 }
