@@ -67,6 +67,7 @@ pushRepo(){
     pushd "${repo_path}"
     git add -A .
     git commit -m "[DeployBot] Initialized gitsecret and added git hooks"
+    git pull
     git push origin master
     echo "Git Repo successfully initialized and pushed"
     popd
