@@ -520,11 +520,18 @@ pushImages() {
 deployImage() {
   local repo_path=$1
   pushd "${repo_path}"
+  access=$(echo ${__machine_name} | cut -d"-" -f2)
+  if [ $access = "internal" ]; then
+    export REGISTRY=$LOCAL_REGISTRY;
+  else
+    export REGISTRY=;
+  fi
   eval "$(docker-machine env ${__machine_name} --shell bash)"
   VOLUMES=${__push_arg} ${__compose_command} pull
   docker network create -d bridge ${__default_network} || true # create a default network if not present
   VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST" ${__compose_command} up -d
   eval "$(docker-machine env --shell bash -u)"
+  export REGISTRY=
   info "Deployment successful"
   popd
 }
