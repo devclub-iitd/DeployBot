@@ -482,15 +482,37 @@ buildImage() {
   info "building image successfull"
 }
 
-## @brief push image to hub.docker.com
+## @brief pull images of other services from hub.docker.com
 ## @param $1 path to repo
-pushImage() {
+pullImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  ## This assumes that we are inside ${__volume_mount}
-  VOLUMES=${__push_arg} ${__compose_command} push
-  info "Build image pushed"
+  VOLUMES=${__build_arg} ${__compose_command} pull --ignore-pull-failures
   popd
+  info "Required images pulled successfully"
+}
+
+## @brief push images to hub.docker.com and/or the local registry
+## @param $1 path to repo
+pushImages() {
+  local repo_path=${1}
+  pushd "${repo_path}"
+  local images=$(docker images | tail -n +2)
+
+  echo "${images}" | while read line; do
+    repo=$(echo "$line" | awk '{print $1}')
+    tag=$(echo "$line" | awk '{print $2}')
+    org=$(echo "$repo" | cut -d"/" -f1)
+
+    if [ $org = "devclubiitd"]; then
+      VOLUMES=${__push_arg} ${__compose_command} push
+      info "Build image pushed"
+    fi
+
+    docker tag "$repo" "$local_registry_host"/"$repo":"$tag"
+    docker push "$local_registry_host"/"$repo":"$tag"
+  done
+  info "All images pushed to respective registries"
 }
 
 ## @brief deploy build image to respective machine
@@ -528,6 +550,7 @@ pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}"
 buildImage "${__repo_dir}"
-pushImage "${__repo_dir}"
+pullImages "${__repo_dir}"
+pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
 cleanup "${__temp_dir}"
