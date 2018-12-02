@@ -49,7 +49,7 @@ func getGitRepos() {
 	for _, repoInterface := range repoList.([]interface{}) {
 		repoMap := repoInterface.(map[string]interface{})
 		repoName := repoMap["name"].(string)
-		repoURL := repoMap["ssh_url"].(string)
+		repoURL := repoMap["git_url"].(string)
 
 		Repositories = append(Repositories, Repo{
 			Name: repoName,
@@ -95,7 +95,7 @@ func parseRepoEvent(msg interface{}) (string, string) {
 		return "", "None"
 	}
 	repoMap := payloadMap["repository"].(map[string]interface{})
-	repoURL := repoMap["ssh_url"].(string)
+	repoURL := repoMap["git_url"].(string)
 	repoName := repoMap["name"].(string)
 	return repoName, repoURL
 }
