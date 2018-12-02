@@ -505,7 +505,9 @@ pushImages() {
     org=$(echo "$repo" | cut -d"/" -f1)
 
     if [ $org = "devclubiitd"]; then
+      docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKER_PASSWORD}
       VOLUMES=${__push_arg} ${__compose_command} push
+      docker logout
       info "Build image pushed"
     fi
 
