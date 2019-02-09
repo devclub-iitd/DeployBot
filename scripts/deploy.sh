@@ -497,12 +497,16 @@ pullImages() {
 pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  local images=$(docker images | tail -n +2)
-
+  local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/image: '\''${REGISTRY_NAME}//' | sed s'/.$//' | sort | uniq`
+  
   echo "${images}" | while read line; do
-    repo=$(echo "$line" | awk '{print $1}')
-    tag=$(echo "$line" | awk '{print $2}')
+    repo=$(echo "$line" | cut -d":" -f1)
     org=$(echo "$repo" | cut -d"/" -f1)
+    if [[ $line == *":"* ]]; then
+      tag=":"$(echo "$line" | cut -d":" -f2)
+    else
+      tag=""
+    fi
 
     if [ $org = "devclubiitd" ]; then
       docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKER_PASSWORD}
@@ -511,8 +515,8 @@ pushImages() {
       info "Build image pushed"
     fi
 
-    docker tag "$repo" "$local_registry_host"/"$repo":"$tag"
-    docker push "$local_registry_host"/"$repo":"$tag"
+    docker tag "$repo" "$LOCAL_REGISTRY""$repo""$tag"
+    docker push "$LOCAL_REGISTRY""$repo""$tag"
   done
   info "All images pushed to respective registries"
 }
@@ -524,16 +528,17 @@ deployImage() {
   pushd "${repo_path}"
   access=$(echo ${__machine_name} | cut -d"-" -f2)
   if [ $access = "internal" ]; then
-    export REGISTRY=$LOCAL_REGISTRY;
+    export REGISTRY_NAME=$LOCAL_REGISTRY
   else
-    export REGISTRY=;
+    export REGISTRY_NAME=;
   fi
   eval "$(docker-machine env ${__machine_name} --shell bash)"
-  VOLUMES=${__push_arg} ${__compose_command} pull
-  docker network create -d bridge ${__default_network} || true # create a default network if not present
-  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST" ${__compose_command} up -d
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e REGISTRY_NAME" ${__compose_command} pull
+  info "Images pulled for deployment"
+#  docker network create -d bridge ${__default_network} || true # create a default network if not present
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST -e REGISTRY_NAME" ${__compose_command} up -d
   eval "$(docker-machine env --shell bash -u)"
-  export REGISTRY=
+  export REGISTRY_NAME=
   info "Deployment successful"
   popd
 }
