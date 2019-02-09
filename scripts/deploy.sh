@@ -373,6 +373,7 @@ __machine_name=${arg_m}
 __repo_url=${arg_u}
 __repo_name=$(basename ${arg_u} .git) #get name of git repository
 __repo_branch=${arg_b}
+__service_access=${arg_a}
 __build_volume="deploybot_builder" # named volume that is shared between the current docker container and the
                         # future docker-compose container
 __build_mount="/scratch/" # location at which build volume is mounted

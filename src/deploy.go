@@ -49,11 +49,12 @@ func DeployApp(submissionData map[string]interface{}) ([]byte, error) {
 	gitRepoURL := submissionData["git_repo"].(string)
 	serverName := submissionData["server_name"].(string)
 	subdomain := submissionData["subdomain"].(string)
+        access := submissionData["access"].(string)
 	branch := DefaultBranch
 
 	log.Infof("Calling %s to deploy", DeployScriptName)
 	output, err := exec.Command(DeployScriptName, "-n", "-u",
-		gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain).CombinedOutput()
+		gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a", access).CombinedOutput()
 	return output, err
 }
 
