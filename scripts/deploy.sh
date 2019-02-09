@@ -376,7 +376,7 @@ __repo_url=${arg_u}
 __repo_name=$(basename ${arg_u} .git) #get name of git repository
 __repo_branch=${arg_b}
 __service_access=${arg_a}
-__nginx_dir="/nginx"
+__nginx_dir="/etc/nginx"
 __build_volume="deploybot_builder" # named volume that is shared between the current docker container and the
                         # future docker-compose container
 __build_mount="/scratch/" # location at which build volume is mounted
@@ -437,7 +437,7 @@ populateVirtualHost() {
   local machine=${2}
   info "Setting subdomain: ${subdomain}"
   local ip=$(docker-machine ip ${machine})
-  local domain=${subdomain}.${ip}
+  local domain=${subdomain}.${machine}
   info "URL: ${domain}"
   export VIRTUAL_HOST=${domain}
 }
@@ -550,21 +550,27 @@ deployImage() {
 nginxEntry() {
   pushd ${__nginx_dir}
 
-  if [ -f "$1" ]; then
-    rm $1
+  if [ -f "./sites-available/"$1"" ]; then
+    rm ./sites-available/"$1"
+    rm ./sites-enabled/"$1"
   fi
 
+  export ip=$(docker-machine ip "$2")
   export subdomain="$1"
   export machine_name="$2"
   if [ "$3" = "internal" ]; then
-    export allowed="10.0.0.0/24"
+    export allowed="allow 10.0.0.0/8;"
+    export allowed2="allow 103.27.8.0/24;"
     export denied="deny all;"
   else
-    export allowed="all"
+    export allowed="allow all;"
+    export allowed2=""
     export denied=""
   fi
 
-  envsubst < /usr/local/bin/nginx_template > ./${subdomain}
+  export http_upgrade="\$http_upgrade"
+  envsubst < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
+  ln -s /etc/nginx/sites-available/${subdomain} /etc/nginx/sites-enabled/${subdomain}
 
   export subdoman=
   export access=

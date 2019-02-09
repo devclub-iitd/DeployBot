@@ -64,12 +64,12 @@ setupHooks(){
 
 pushRepo(){
     local repo_path=${1}
-    local repo_url=${2#"git://"}
+    
     pushd "${repo_path}"
     git add -A .
     git commit -m "[DeployBot] Initialized gitsecret and added git hooks"
-    git pull
-    git push https://"${GITHUB_USERNAME}":"${GITHUB_PASSWORD}"@"${repo_url}"
+    git pull || true
+    git push -u origin master
     echo "Git Repo successfully initialized and pushed"
     popd
 }
@@ -86,6 +86,6 @@ pullRepository "${__repo_url}" "${__repo_dir}"
 pullRepository "${__hooks_repo_url}" "${__hooks_repo_dir}" "hooks"
 initGitSecret "${__repo_dir}"
 setupHooks "${__repo_dir}" "${__hooks_repo_dir}"
-pushRepo "${__repo_dir}" "${__repo_url}"
+pushRepo "${__repo_dir}"
 cleanup "${__repo_dir}"
 cleanup "${__hooks_repo_dir}"

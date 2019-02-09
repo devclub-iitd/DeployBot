@@ -20,7 +20,7 @@ services:
       - type: volume
         source: docker_conf
         target: /root/.docker
-        read_only: true
+        #read_only: true
       - type: bind
         source: ./ignore/keys
         target: /keys
@@ -29,8 +29,8 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
       - type: bind
-        source: /etc/nginx/sites-available
-        target: /nginx
+        source: /etc/nginx
+        target: /etc/nginx
     labels:
       - "in.devclub=Deploy Container"
     logging:

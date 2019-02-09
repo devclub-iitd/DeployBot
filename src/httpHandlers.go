@@ -150,7 +150,7 @@ func repoHandler(w http.ResponseWriter, r *http.Request) {
 			"Initialization of new repo - "+repoURL+" FAILED\n\n  "+
 				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)
 	} else {
-		log.Info("Initialization of git repo FAILED")
+		log.Info("Initialization of git repo SUCCESS")
 		_ = chatPostMessage(SlackGeneralChannelID,
 			"Initialization of new repo - "+repoURL+" SUCCESS\n\n  "+
 				"See logs at: "+ServerURL+"/logs/git/"+repoName+".txt", nil)

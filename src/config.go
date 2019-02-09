@@ -21,7 +21,7 @@ const (
 var LogDir = getenv("LOG_DIR", "/var/logs/deploybot/")
 
 // ServerURL is the URL at which the server is listening to requests
-var ServerURL = getenv("SERVER_URL", "https://listen.devclub.in")
+var ServerURL = getenv("SERVER_URL", "https://listen.devclub.iitd.ac.in")
 
 // Port is the HTTP Port on which the go code will listen
 var Port = getenv("PORT", "7777")
@@ -141,6 +141,21 @@ var DialogMenu = []byte(`{
 			"label": "Subdomain",
 			"name": "subdomain",
 			"type": "text"
+		},
+		{
+			"label": "Access",
+			"name": "access",
+			"type": "select",
+			"options": [
+    				{
+      					"label": "Internal",
+      					"value": "internal"
+    				},
+    				{
+      					"label": "External",
+      					"value": "external"
+    				}
+			]
 		},
 		{
 			"label": "APP Channel",
