@@ -139,6 +139,7 @@ function help () {
   -m --machine  [arg]   Machine to deploy the project. Required.
   -b --branch  [arg] Name of the repository. Default="master"
   -s --subdomain  [arg] Subdomain of the deployed app. It will default to VIRTUAL_HOST given in docker configuration.
+  -a --access  [arg] Access criteria for the service
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
@@ -363,6 +364,7 @@ fi
 
 [[ "${arg_m:-}" ]]     || help      "Setting a machine name with -m or --machine is required"
 [[ "${arg_u:-}" ]]     || help      "Setting a repo url with -u or --url is required"
+[[ "${arg_a:-}" ]]     || help      "Setting access criteria with -a or --access is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
 
@@ -374,6 +376,7 @@ __repo_url=${arg_u}
 __repo_name=$(basename ${arg_u} .git) #get name of git repository
 __repo_branch=${arg_b}
 __service_access=${arg_a}
+__nginx_dir="/nginx"
 __build_volume="deploybot_builder" # named volume that is shared between the current docker container and the
                         # future docker-compose container
 __build_mount="/scratch/" # location at which build volume is mounted
@@ -544,6 +547,34 @@ deployImage() {
   popd
 }
 
+nginxEntry() {
+  pushd ${__nginx_dir}
+
+  if [ -f "$1" ]; then
+    rm $1
+  fi
+
+  export subdomain="$1"
+  export machine_name="$2"
+  if [ "$3" = "internal" ]; then
+    export allowed="10.0.0.0/24"
+    export denied="deny all;"
+  else
+    export allowed="all"
+    export denied=""
+  fi
+
+  envsubst < /usr/local/bin/nginx_template > ./${subdomain}
+
+  export subdoman=
+  export access=
+  export machine_name=
+  export denied=
+
+  info "nginx entry successful"
+  popd
+}
+
 ## @brief clean up actions after the whole build process
 ## @param $1 repo path
 cleanup() {
@@ -568,4 +599,5 @@ buildImage "${__repo_dir}"
 pullImages "${__repo_dir}"
 pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
+nginxEntry ${arg_s} ${__machine_name} ${__service_access}
 cleanup "${__temp_dir}"

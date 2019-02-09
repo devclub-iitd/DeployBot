@@ -28,6 +28,9 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
+      - type: bind
+        source: /etc/nginx/sites-available
+        target: /nginx
     labels:
       - "in.devclub=Deploy Container"
     logging:
