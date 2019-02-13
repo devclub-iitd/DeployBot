@@ -602,7 +602,7 @@ fi
 pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}"
-pullImages "{__repo_dir}"
+pullImages "${__repo_dir}"
 buildImage "${__repo_dir}"
 pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
