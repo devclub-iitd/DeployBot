@@ -520,7 +520,7 @@ pushImages() {
       info "Build image pushed"
     fi
 
-    docker tag "$repo":"$tag" "$LOCAL_REGISTRY""$repo""$tag"
+    docker tag "$repo""$tag" "$LOCAL_REGISTRY""$repo""$tag"
     docker push "$LOCAL_REGISTRY""$repo""$tag"
   done
   info "All images pushed to respective registries"
