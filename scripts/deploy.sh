@@ -439,6 +439,7 @@ populateVirtualHost() {
   local ip=$(docker-machine ip ${machine})
   local domain=${subdomain}.${machine}
   info "URL: ${domain}"
+  export HOST_IP=$ip
   export VIRTUAL_HOST=${domain}
 }
 
@@ -501,7 +502,7 @@ pullImages() {
 pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/image: '\''${REGISTRY_NAME}//' | sed s'/.$//' | sort | uniq`
+  local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/.*${REGISTRY_NAME}//' | sed 's/["'\'']\?$//' | sort | uniq`
   
   echo "${images}" | while read line; do
     repo=$(echo "$line" | cut -d":" -f1)
@@ -540,7 +541,7 @@ deployImage() {
   VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e REGISTRY_NAME" ${__compose_command} pull
   info "Images pulled for deployment"
 #  docker network create -d bridge ${__default_network} || true # create a default network if not present
-  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST -e REGISTRY_NAME" ${__compose_command} up -d
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e HOST_IP -e VIRTUAL_HOST -e REGISTRY_NAME" ${__compose_command} up -d
   eval "$(docker-machine env --shell bash -u)"
   export REGISTRY_NAME=
   info "Deployment successful"
@@ -601,8 +602,8 @@ fi
 pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}"
+pullImages "{__repo_dir}"
 buildImage "${__repo_dir}"
-pullImages "${__repo_dir}"
 pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
 nginxEntry ${arg_s} ${__machine_name} ${__service_access}
