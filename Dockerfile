@@ -18,8 +18,8 @@ RUN apk add --no-cache \
         wget\
         perl\
         make\
-        gawk
-
+        gawk\
+        gettext
 RUN git clone https://github.com/sobolevn/git-secret.git git-secret && cd git-secret && make build && PREFIX="/usr/local" make install
 
 VOLUME ["/root/.docker","/keys"]
@@ -30,4 +30,4 @@ COPY ./scripts/* /usr/local/bin/
 
 EXPOSE 7777/tcp
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]  
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

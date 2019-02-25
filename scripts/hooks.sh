@@ -64,11 +64,12 @@ setupHooks(){
 
 pushRepo(){
     local repo_path=${1}
+    
     pushd "${repo_path}"
     git add -A .
     git commit -m "[DeployBot] Initialized gitsecret and added git hooks"
-    git pull
-    git push origin master
+    git pull || true
+    git push -u origin master
     echo "Git Repo successfully initialized and pushed"
     popd
 }

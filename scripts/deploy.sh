@@ -139,6 +139,7 @@ function help () {
   -m --machine  [arg]   Machine to deploy the project. Required.
   -b --branch  [arg] Name of the repository. Default="master"
   -s --subdomain  [arg] Subdomain of the deployed app. It will default to VIRTUAL_HOST given in docker configuration.
+  -a --access  [arg] Access criteria for the service
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
@@ -363,6 +364,7 @@ fi
 
 [[ "${arg_m:-}" ]]     || help      "Setting a machine name with -m or --machine is required"
 [[ "${arg_u:-}" ]]     || help      "Setting a repo url with -u or --url is required"
+[[ "${arg_a:-}" ]]     || help      "Setting access criteria with -a or --access is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
 
@@ -373,6 +375,8 @@ __machine_name=${arg_m}
 __repo_url=${arg_u}
 __repo_name=$(basename ${arg_u} .git) #get name of git repository
 __repo_branch=${arg_b}
+__service_access=${arg_a}
+__nginx_dir="/etc/nginx"
 __build_volume="deploybot_builder" # named volume that is shared between the current docker container and the
                         # future docker-compose container
 __build_mount="/scratch/" # location at which build volume is mounted
@@ -433,8 +437,9 @@ populateVirtualHost() {
   local machine=${2}
   info "Setting subdomain: ${subdomain}"
   local ip=$(docker-machine ip ${machine})
-  local domain=${subdomain}.${ip}
+  local domain=${subdomain}.${machine}
   info "URL: ${domain}"
+  export HOST_IP=$ip
   export VIRTUAL_HOST=${domain}
 }
 
@@ -482,15 +487,43 @@ buildImage() {
   info "building image successfull"
 }
 
-## @brief push image to hub.docker.com
+## @brief pull images of other services from hub.docker.com
 ## @param $1 path to repo
-pushImage() {
+pullImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  ## This assumes that we are inside ${__volume_mount}
-  VOLUMES=${__push_arg} ${__compose_command} push
-  info "Build image pushed"
+  VOLUMES=${__build_arg} ${__compose_command} pull --ignore-pull-failures
   popd
+  info "Required images pulled successfully"
+}
+
+## @brief push images to hub.docker.com and/or the local registry
+## @param $1 path to repo
+pushImages() {
+  local repo_path=${1}
+  pushd "${repo_path}"
+  local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/.*${REGISTRY_NAME}//' | sed 's/["'\'']\?$//' | sort | uniq`
+  
+  echo "${images}" | while read line; do
+    repo=$(echo "$line" | cut -d":" -f1)
+    org=$(echo "$repo" | cut -d"/" -f1)
+    if [[ $line == *":"* ]]; then
+      tag=":"$(echo "$line" | cut -d":" -f2)
+    else
+      tag=""
+    fi
+
+    if [ $org = "devclubiitd" ]; then
+      docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKER_PASSWORD}
+      VOLUMES=${__push_arg} ${__compose_command} push
+      docker logout
+      info "Build image pushed"
+    fi
+
+    docker tag "$repo""$tag" "$LOCAL_REGISTRY""$repo""$tag"
+    docker push "$LOCAL_REGISTRY""$repo""$tag"
+  done
+  info "All images pushed to respective registries"
 }
 
 ## @brief deploy build image to respective machine
@@ -498,12 +531,54 @@ pushImage() {
 deployImage() {
   local repo_path=$1
   pushd "${repo_path}"
+  access=$(echo ${__machine_name} | cut -d"-" -f2)
+  if [ $access = "internal" ]; then
+    export REGISTRY_NAME=$LOCAL_REGISTRY
+  else
+    export REGISTRY_NAME=;
+  fi
   eval "$(docker-machine env ${__machine_name} --shell bash)"
-  VOLUMES=${__push_arg} ${__compose_command} pull
-  docker network create -d bridge ${__default_network} || true # create a default network if not present
-  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e VIRTUAL_HOST" ${__compose_command} up -d
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e REGISTRY_NAME" ${__compose_command} pull
+  info "Images pulled for deployment"
+#  docker network create -d bridge ${__default_network} || true # create a default network if not present
+  VOLUMES=${__push_arg} COMPOSE_OPTIONS="-e HOST_IP -e VIRTUAL_HOST -e REGISTRY_NAME" ${__compose_command} up -d
   eval "$(docker-machine env --shell bash -u)"
+  export REGISTRY_NAME=
   info "Deployment successful"
+  popd
+}
+
+nginxEntry() {
+  pushd ${__nginx_dir}
+
+  if [ -f "./sites-available/"$1"" ]; then
+    rm ./sites-available/"$1"
+    rm ./sites-enabled/"$1"
+  fi
+
+  export ip=$(docker-machine ip "$2")
+  export subdomain="$1"
+  export machine_name="$2"
+  if [ "$3" = "internal" ]; then
+    export allowed="allow 10.0.0.0/8;"
+    export allowed2="allow 103.27.8.0/24;"
+    export denied="deny all;"
+  else
+    export allowed="allow all;"
+    export allowed2=""
+    export denied=""
+  fi
+
+  export http_upgrade="\$http_upgrade"
+  envsubst < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
+  ln -s /etc/nginx/sites-available/${subdomain} /etc/nginx/sites-enabled/${subdomain}
+
+  export subdoman=
+  export access=
+  export machine_name=
+  export denied=
+
+  info "nginx entry successful"
   popd
 }
 
@@ -527,7 +602,9 @@ fi
 pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
 analyzeRepository "${__repo_dir}"
 decryptEnv "${__repo_dir}"
+pullImages "${__repo_dir}"
 buildImage "${__repo_dir}"
-pushImage "${__repo_dir}"
+pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
+nginxEntry ${arg_s} ${__machine_name} ${__service_access}
 cleanup "${__temp_dir}"

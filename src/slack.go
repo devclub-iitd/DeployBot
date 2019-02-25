@@ -20,6 +20,7 @@ func validateRequestSlack(r *http.Request) bool {
 
 	bodyString := string(bodyBytes)
 
+
 	stringsToJoin := []string{}
 	stringsToJoin = append(stringsToJoin, "v0")
 	stringsToJoin = append(stringsToJoin, ts)
@@ -27,6 +28,7 @@ func validateRequestSlack(r *http.Request) bool {
 
 	sha := getHash(strings.Join(stringsToJoin, ":"), SlackSigningSecret,
 		"sha256")
+
 
 	if ("v0=" + sha) == sig {
 		return true
