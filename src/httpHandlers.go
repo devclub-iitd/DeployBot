@@ -12,6 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func sayhelloName(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "OK. Healthy!") // send healthy data
+}
+
+
+
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("/deploy command called on slack")
