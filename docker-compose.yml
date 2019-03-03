@@ -38,7 +38,7 @@ services:
         max-size: '20m'
         max-file: '10'
       driver: json-file
-    restart: unless-stopped
+    restart: always
     networks:
       - "internal"
 volumes:

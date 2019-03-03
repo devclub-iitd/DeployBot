@@ -13,7 +13,7 @@ import (
 )
 
 func sayhelloName(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "OK. Healthy!") // send healthy data
+	fmt.Fprintf(w, "OK. Healthy!\n") // send healthy data
 }
 
 

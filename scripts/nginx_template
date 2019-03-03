@@ -4,12 +4,20 @@ upstream ${subdomain}.${machine_name} {
 
 server
 {
-	listen 0.0.0.0:80;
-	server_name ${subdomain}.devclub.iitd.ac.in;
+	server_name ${subdomain}.${GLOBAL_DOMAIN};
 	access_log /var/log/nginx/${subdomain}_access.log;
 	error_log /var/log/nginx/${subdomain}_error.log;
 
-	location / {
+    listen 443 ssl;
+    
+    ## Make sure these files exist on the server (mainvm)
+    
+    ssl_certificate /etc/letsencrypt/live/devclub.in/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/devclub.in/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
 		proxy_pass http://${subdomain}.${machine_name};
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -17,5 +25,17 @@ server
 		${allowed}
 		${allowed2}
 		${denied}
+    
     }
 }
+
+server{
+        if ($host = ${subdomain}.${GLOBAL_DOMAIN}) {
+            return 301 https://$host$request_uri;
+        }
+
+        listen 0.0.0.0:80;
+        server_name ${subdomain}.${GLOBAL_DOMAIN};
+        return 404;
+}
+

@@ -19,7 +19,8 @@ RUN apk add --no-cache \
         perl\
         make\
         gawk\
-        gettext
+        gettext\
+        curl
 RUN git clone https://github.com/sobolevn/git-secret.git git-secret && cd git-secret && make build && PREFIX="/usr/local" make install
 
 VOLUME ["/root/.docker","/keys"]
