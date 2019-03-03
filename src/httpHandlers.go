@@ -12,8 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func sayhelloName(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "OK. Healthy!\n") // send healthy data
+func okHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "OK. Healthy!\n") // send healthy data
 }
 
 
