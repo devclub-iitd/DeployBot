@@ -569,7 +569,10 @@ nginxEntry() {
     export denied=""
   fi
 
+  ## TODO: Look for a better way to do it
   export http_upgrade="\$http_upgrade"
+  export host="\$host"
+  export request_uri="\$request_uri"
   envsubst < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
   ln -s /etc/nginx/sites-available/${subdomain} /etc/nginx/sites-enabled/${subdomain}
 
