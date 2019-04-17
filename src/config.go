@@ -54,6 +54,9 @@ const (
 // SlackGeneralChannelID is the url of the chat post message API of slack
 var SlackGeneralChannelID = getenv("SLACK_GENERAL_CHANNEL_ID", "C4Q43PCN5")
 
+// SlackAllHooksChanneID is the channel id where all the messages will be posted by default
+var SlackAllHooksChannelID = getenv("SLACK_ALL_HOOKS_CHANNEL_ID", "CGN56SGDS")
+
 // Repo is the type that is used to store information about a repository
 type Repo struct {
 	Name string `json:"repo_name"`
@@ -161,7 +164,8 @@ var DialogMenu = []byte(`{
 			"label": "APP Channel",
 			"name": "channel",
 			"type": "select",
-			"data_source": "channels"
+			"data_source": "channels",
+			"value": "CGN56SGDS"
 		}
 	]
 }`)
