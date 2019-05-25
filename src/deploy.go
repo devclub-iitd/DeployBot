@@ -24,11 +24,13 @@ func deployGoRoutine(callbackID string,
 
 	deployOut, err := DeployApp(submissionDataMap)
 
+	CreateLogEntry("up", submissionDataMap)
 	writeToFile(path.Join(LogDir, "deploy", callbackID+".txt"),
 		string(deployOut))
 
 	if err != nil {
 		log.Error("Deployment Failed")
+		UpdateLogEntry(submissionDataMap["git_repo"].(string), "failed")
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+" on "+
 				submissionDataMap["server_name"].(string)+" with subdomain "+
@@ -36,6 +38,7 @@ func deployGoRoutine(callbackID string,
 				"See logs at: "+ServerURL+"/logs/deploy/"+callbackID+".txt", nil)
 	} else {
 		log.Info("Deployment Successful")
+		UpdateLogEntry(submissionDataMap["git_repo"].(string), "successful")
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+" on "+
 				submissionDataMap["server_name"].(string)+" with subdomain "+
