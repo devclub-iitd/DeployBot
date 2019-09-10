@@ -20,15 +20,16 @@ type DeployInstance struct {
 
 type Service []DeployInstance
 
-func CreateLogEntry(action string, submissionData map[string]interface{}) {
+func CreateLogEntry(action string, submissionData map[string]interface{}, status string) {
 	bytes, _ := ioutil.ReadFile(historyFile)
 	history := make(map[string]Service)
 	json.Unmarshal([]byte(bytes), &history)
 
 	service := DeployInstance{
 		action, submissionData["subdomain"].(string),
-		submissionData["server_name"].(string),"in progress", "-",
-		time.Now()}
+		submissionData["server_name"].(string),"in progress", status,
+		time.Now()
+	}
 
 	fmt.Println(history)
 	fmt.Println(submissionData)
@@ -49,4 +50,16 @@ func UpdateLogEntry(service, result string) {
 
 	file, _ := json.Marshal(history)
 	_ = ioutil.WriteFile(historyFile, file, 0644)
+}
+
+func getStatus(service string) bool {
+	bytes, _ := ioutil.ReadFile(historyFile)
+	var history map[string]Service
+	json.Unmarshal([]byte(bytes), &history)
+
+	if val, ok := history[service]; ok {
+		return val[0].Status != "running"
+	} else {
+		return true
+	}
 }

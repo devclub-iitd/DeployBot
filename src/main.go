@@ -19,7 +19,9 @@ func main() {
 	http.HandleFunc("/github/repo/", repoHandler)
 
 	http.HandleFunc("/logs/", logHandler)
-    http.HandleFunc("/", okHandler)
+	http.HandleFunc("/", okHandler)
+
+	http.HandleFunc("/history", historyHandler)
 
 	log.Infof("Starting HTTP Server on :%s", Port)
 

@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"errors"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -24,11 +25,11 @@ func deployGoRoutine(callbackID string,
 
 	deployOut, err := DeployApp(submissionDataMap)
 
-	CreateLogEntry("up", submissionDataMap)
 	writeToFile(path.Join(LogDir, "deploy", callbackID+".txt"),
 		string(deployOut))
 
 	if err != nil {
+		CreateLogEntry("up", submissionDataMap, "failed")
 		log.Error("Deployment Failed")
 		UpdateLogEntry(submissionDataMap["git_repo"].(string), "failed")
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
@@ -37,6 +38,7 @@ func deployGoRoutine(callbackID string,
 				submissionDataMap["subdomain"].(string)+" FAILED\n\n  "+
 				"See logs at: "+ServerURL+"/logs/deploy/"+callbackID+".txt", nil)
 	} else {
+		CreateLogEntry("up", submissionDataMap, "running")
 		log.Info("Deployment Successful")
 		UpdateLogEntry(submissionDataMap["git_repo"].(string), "successful")
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
@@ -52,13 +54,21 @@ func DeployApp(submissionData map[string]interface{}) ([]byte, error) {
 	gitRepoURL := submissionData["git_repo"].(string)
 	serverName := submissionData["server_name"].(string)
 	subdomain := submissionData["subdomain"].(string)
-        access := submissionData["access"].(string)
+	access := submissionData["access"].(string)
 	branch := DefaultBranch
 
-	log.Infof("Calling %s to deploy", DeployScriptName)
-	output, err := exec.Command(DeployScriptName, "-n", "-u",
-		gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a", access).CombinedOutput()
-	return output, err
+	status := getStatus(gitRepoURL); //True if not running
+
+	if status {
+		log.Infof("Calling %s to deploy", DeployScriptName)
+		output, err := exec.Command(DeployScriptName, "-n", "-u",
+			gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a", access).CombinedOutput()
+		return output, err
+	} else {
+		log.Infof("Service is already running", DeployScriptName)
+		output := []byte("Service is already running")
+		return output, errors.New("Service running")
+	}
 }
 
 func getServers() {

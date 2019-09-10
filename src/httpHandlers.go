@@ -173,3 +173,11 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path.Join(LogDir, filename))
 
 }
+
+func historyHandler(w http.ResponseWriter, r *http.Request) {
+
+	bytes, _ := ioutil.ReadFile(historyFile)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
+}

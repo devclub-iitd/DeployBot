@@ -23,8 +23,8 @@ func getGitRepos() {
 	u.Path = path.Join(u.Path, "orgs/"+OrganizationName+"/repos")
 
 	log.Info("Sending a HTTP GET request to github.com to get repo lists")
-
-	resp, err := http.Get(u.String())
+	log.Info(u.String())
+	resp, err := http.Get(u.String()+"?per_page=100")
 	if err != nil {
 		panic(err)
 	}
