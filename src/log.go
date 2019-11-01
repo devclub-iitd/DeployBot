@@ -6,22 +6,6 @@ import (
 	"time"
 )
 
-var historyFile string = "/etc/nginx/history.json"
-
-type ActionInstance struct {
-	Action    string    `json:"action"`
-	Subdomain string    `json:"subdomain"`
-	Server    string    `json:"server"`
-	Access    string    `json:"access"`
-	Result    string    `json:"result"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-type Service struct {
-	Actions []ActionInstance  `json:"actions"`
-	Current map[string]string `json:"current"`
-}
-
 func CreateLogEntry(submissionData map[string]interface{}, action,
 	result string) {
 
@@ -55,12 +39,12 @@ func GetStatus(service string) string {
 	json.Unmarshal([]byte(bytes), &history)
 
 	if val, ok := history[service]; ok {
-		return val.Current["status"]
+		return val.Current.Status
 	}
 	return "stopped"
 }
 
-func GetCurrent(service string) map[string]string {
+func GetCurrent(service string) State {
 	bytes, _ := ioutil.ReadFile(historyFile)
 	var history map[string]Service
 	json.Unmarshal([]byte(bytes), &history)
@@ -69,12 +53,7 @@ func GetCurrent(service string) map[string]string {
 		return val.Current
 	}
 
-	return map[string]string{
-		"status":    "stopped",
-		"subdomain": "",
-		"access":    "",
-		"server":    "",
-	}
+	return State{"stopped", "", "", ""}
 }
 
 func SetStatus(service, status string) {
@@ -83,16 +62,11 @@ func SetStatus(service, status string) {
 	json.Unmarshal([]byte(bytes), &history)
 
 	if val, ok := history[service]; ok {
-		val.Current["status"] = status
+		val.Current.Status = status
 		history[service] = val
 	} else {
 		history[service] = Service{[]ActionInstance{},
-			map[string]string{
-				"status":    status,
-				"access":    "",
-				"subdomain": "",
-				"server":    "",
-			}}
+			State{status, "", "", ""}}
 	}
 
 	file, _ := json.Marshal(history)
@@ -104,12 +78,7 @@ func SetCurrent(service, status, subdomain, access, server string) {
 	var history map[string]Service
 	json.Unmarshal([]byte(bytes), &history)
 
-	current := map[string]string{
-		"status":    status,
-		"server":    server,
-		"access":    access,
-		"subdomain": subdomain,
-	}
+	current := State{status, server, access, subdomain}
 	if val, ok := history[service]; ok {
 		val.Current = current
 		history[service] = val

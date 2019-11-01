@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -216,4 +217,17 @@ func historyHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)
+}
+
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+
+	bytes, _ := ioutil.ReadFile(historyFile)
+	history := make(map[string]Service)
+	json.Unmarshal([]byte(bytes), &history)
+
+	tmpl, err := template.ParseFiles(templateFile)
+	if err != nil {
+		log.Error(err.Error)
+	}
+	tmpl.Execute(w, history)
 }

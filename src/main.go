@@ -20,6 +20,7 @@ func main() {
 	http.HandleFunc("/github/repo/", repoHandler)
 
 	http.HandleFunc("/logs/", logHandler)
+	http.HandleFunc("/status", statusHandler)
 	http.HandleFunc("/", okHandler)
 
 	http.HandleFunc("/history", historyHandler)

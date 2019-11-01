@@ -39,9 +39,9 @@ func stopGoRoutine(callbackID string,
 func StopApp(submissionData map[string]interface{}) ([]byte, error) {
 	gitRepoURL := submissionData["git_repo"].(string)
 	current := GetCurrent(gitRepoURL)
-	subdomain := current["subdomain"]
-	serverName := current["server"]
-	status := current["status"]
+	subdomain := current.Subdomain
+	serverName := current.Server
+	status := current.Status
 
 	var output []byte
 	var err error
