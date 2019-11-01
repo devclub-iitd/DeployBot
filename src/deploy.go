@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"os/exec"
 	"path"
 	"strings"
-	"errors"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -29,18 +29,19 @@ func deployGoRoutine(callbackID string,
 		string(deployOut))
 
 	if err != nil {
-		CreateLogEntry("up", submissionDataMap, "failed")
 		log.Error("Deployment Failed")
-		UpdateLogEntry(submissionDataMap["git_repo"].(string), "failed")
+		CreateLogEntry(submissionDataMap, "up", "failed")
+
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+" on "+
 				submissionDataMap["server_name"].(string)+" with subdomain "+
 				submissionDataMap["subdomain"].(string)+" FAILED\n\n  "+
-				"See logs at: "+ServerURL+"/logs/deploy/"+callbackID+".txt", nil)
+				"See logs at: "+ServerURL+"/logs/deploy/"+callbackID+".txt\n"+
+				"ERROR: "+err.Error(), nil)
 	} else {
-		CreateLogEntry("up", submissionDataMap, "running")
 		log.Info("Deployment Successful")
-		UpdateLogEntry(submissionDataMap["git_repo"].(string), "successful")
+		CreateLogEntry(submissionDataMap, "up", "successful")
+
 		_ = chatPostMessage(submissionDataMap["channel"].(string),
 			"Deployment of "+submissionDataMap["git_repo"].(string)+" on "+
 				submissionDataMap["server_name"].(string)+" with subdomain "+
@@ -57,18 +58,48 @@ func DeployApp(submissionData map[string]interface{}) ([]byte, error) {
 	access := submissionData["access"].(string)
 	branch := DefaultBranch
 
-	status := getStatus(gitRepoURL); //True if not running
+	status := GetStatus(gitRepoURL)
 
-	if status {
+	var output []byte
+	var err error
+
+	if status == "stopped" {
+
 		log.Infof("Calling %s to deploy", DeployScriptName)
-		output, err := exec.Command(DeployScriptName, "-n", "-u",
-			gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a", access).CombinedOutput()
-		return output, err
-	} else {
+		SetStatus(gitRepoURL, "deploying")
+
+		output, err = exec.Command(DeployScriptName, "-n", "-u",
+			gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a",
+			access).CombinedOutput()
+
+		if err != nil {
+			SetStatus(gitRepoURL, "stopped")
+		} else {
+			SetCurrent(gitRepoURL, "running", subdomain, access, serverName)
+		}
+	} else if status == "running" {
+
 		log.Infof("Service is already running", DeployScriptName)
-		output := []byte("Service is already running")
-		return output, errors.New("Service running")
+
+		output = []byte("Service is already running!")
+		err = errors.New("already running")
+	} else if status == "stopping" {
+
+		log.Infof("Service is stopping. Can't deploy.", DeployScriptName)
+
+		output = []byte("Service is stopping. Please wait for the process to" +
+			" be completed and try again.")
+		err = errors.New("cannot deploy while service is stopping")
+	} else {
+
+		log.Infof("Service is being deployed.", DeployScriptName)
+
+		output = []byte("Service is being deployed. Cannot start another" +
+			" deploy instance.")
+		err = errors.New("already deploying")
 	}
+
+	return output, err
 }
 
 func getServers() {

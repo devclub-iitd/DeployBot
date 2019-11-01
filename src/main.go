@@ -13,6 +13,7 @@ func main() {
 	log.Info("Initialization completed successfully")
 
 	http.HandleFunc("/slack/commands/deploy/", deployCommandHandler)
+	http.HandleFunc("/slack/commands/stop", stopCommandHandler)
 	http.HandleFunc("/slack/interactive/request/", requestHandler)
 	http.HandleFunc("/slack/interactive/data-options/", dataOptionsHandler)
 

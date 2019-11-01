@@ -503,7 +503,7 @@ pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
   local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/.*${REGISTRY_NAME}//' | sed 's/["'\'']\?$//' | sort | uniq`
-  
+
   echo "${images}" | while read line; do
     repo=$(echo "$line" | cut -d":" -f1)
     org=$(echo "$repo" | cut -d"/" -f1)
@@ -585,6 +585,18 @@ nginxEntry() {
   popd
 }
 
+## @brief save docker-compose
+## @param $1 name of repo
+saveCompose() {
+  local repo_name=$1
+  local compose_dir=${__nginx_dir}/composes/${repo_name}
+  
+  mkdir -p ${compose_dir}
+  pushd ${compose_dir}
+  cp ${__repo_dir}/${__compose_file} ${__repo_dir}/.env .
+  popd
+}
+
 ## @brief clean up actions after the whole build process
 ## @param $1 repo path
 cleanup() {
@@ -610,4 +622,5 @@ buildImage "${__repo_dir}"
 pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
 nginxEntry ${arg_s} ${__machine_name} ${__service_access}
+saveCompose ${__repo_name}
 cleanup "${__temp_dir}"

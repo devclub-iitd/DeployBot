@@ -9,11 +9,13 @@ import (
 
 // DeployCount is the global number of deploy requests handled
 var DeployCount = 0
+var StopCount = 0
 
 // HooksScriptName is the name of script used to setup hooks
 const (
 	HooksScriptName  = "hooks.sh"
 	DeployScriptName = "deploy.sh"
+	StopScriptName   = "stop.sh"
 	DefaultBranch    = "master"
 )
 
@@ -122,8 +124,8 @@ func initialize() {
 
 }
 
-// DialogMenu is the format of the menu that will displayed for deploy dialog
-var DialogMenu = []byte(`{
+// DeployDialog is the format of the menu that will displayed for deploy dialog
+var DeployDialog = []byte(`{
 	"callback_id": "deploy-xxxx",
 	"title": "Deploy App",
 	"submit_label": "Deploy",
@@ -159,6 +161,28 @@ var DialogMenu = []byte(`{
       					"value": "external"
     				}
 			]
+		},
+		{
+			"label": "APP Channel",
+			"name": "channel",
+			"type": "select",
+			"data_source": "channels",
+			"value": "CGN56SGDS"
+		}
+	]
+}`)
+
+// StopDialog is the format of the menu that will displayed for deploy dialog
+var StopDialog = []byte(`{
+	"callback_id": "stop-xxxx",
+	"title": "Stop App",
+	"submit_label": "Stop",
+	"elements": [
+		{
+			"type": "select",
+			"label": "Github Repository",
+			"name": "git_repo",
+			"data_source": "external"
 		},
 		{
 			"label": "APP Channel",

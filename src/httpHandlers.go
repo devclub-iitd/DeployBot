@@ -13,10 +13,8 @@ import (
 )
 
 func okHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "OK. Healthy!\n") // send healthy data
+	fmt.Fprintf(w, "OK. Healthy!\n") // send healthy data
 }
-
-
 
 func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -34,7 +32,7 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 	triggerID := r.Form["trigger_id"][0]
 
 	var f interface{}
-	err := json.Unmarshal(DialogMenu, &f)
+	err := json.Unmarshal(DeployDialog, &f)
 	if err != nil {
 		panic(err)
 	}
@@ -54,9 +52,44 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func stopCommandHandler(w http.ResponseWriter, r *http.Request) {
+
+	log.Infof("/stop command called on slack")
+
+	if validateRequestSlack(r) {
+		log.Infof("Request verification from slack: SUCCESS")
+	} else {
+		log.Warn("Request verification from slack: FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
+	r.ParseForm()
+	triggerID := r.Form["trigger_id"][0]
+
+	var f interface{}
+	err := json.Unmarshal(StopDialog, &f)
+	if err != nil {
+		panic(err)
+	}
+	dialogJSON := f.(map[string]interface{})
+	StopCount++
+	dialogJSON["callback_id"] = "stop-" + strconv.Itoa(StopCount)
+
+	dialogMesg := make(map[string]interface{})
+	dialogMesg["trigger_id"] = triggerID
+	dialogMesg["dialog"] = dialogJSON
+
+	log.Info("Created a dialog Message, Beginning to send it")
+	if dialogOpen(dialogMesg) == false {
+		log.Warn("Some error occured")
+		w.WriteHeader(500)
+	}
+}
+
 func requestHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Info("Recieved a deploy request from slack")
+	log.Info("Recieved a request from slack")
 	if validateRequestSlack(r) {
 		log.Info("Request verification from slack: SUCCESS")
 	} else {
@@ -74,9 +107,12 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	formPayloadMap := formPayload.(map[string]interface{})
 
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
-
-	go deployGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
-
+	log.Infof(submissionDataMap["git_repo"].(string))
+	if strings.Contains(formPayloadMap["callback_id"].(string), "deploy") {
+		go deployGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
+	} else {
+		go stopGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
+	}
 }
 
 func dataOptionsHandler(w http.ResponseWriter, r *http.Request) {
