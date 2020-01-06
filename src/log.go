@@ -78,7 +78,7 @@ func SetCurrent(service, status, subdomain, access, server string) {
 	var history map[string]Service
 	json.Unmarshal([]byte(bytes), &history)
 
-	current := State{status, server, access, subdomain}
+	current := State{status, subdomain, access, server}
 	if val, ok := history[service]; ok {
 		val.Current = current
 		history[service] = val
