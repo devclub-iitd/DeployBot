@@ -48,7 +48,7 @@ func StopApp(submissionData map[string]interface{}) ([]byte, error) {
 
 	if status == "running" {
 
-		log.Infof("Calling %s to deploy", DeployScriptName)
+		log.Infof("Calling %s to stop service", DeployScriptName)
 		SetStatus(gitRepoURL, "stopping")
 
 		output, err = exec.Command(StopScriptName, subdomain, gitRepoURL, serverName).CombinedOutput()
@@ -66,7 +66,7 @@ func StopApp(submissionData map[string]interface{}) ([]byte, error) {
 		err = errors.New("already stopped")
 	} else if status == "stopping" {
 
-		log.Infof("Service is being stopped. Can't start another stop"+
+		log.Infof("Service is being stopped. Can't start another stop "+
 			"instance.", DeployScriptName)
 
 		output = []byte("Service is already being stopped.")

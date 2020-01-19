@@ -11,12 +11,14 @@ import (
 // DeployCount is the global number of deploy requests handled
 var DeployCount = 0
 var StopCount = 0
+var LogsCount = 0
 
 // HooksScriptName is the name of script used to setup hooks
 const (
 	HooksScriptName  = "hooks.sh"
 	DeployScriptName = "deploy.sh"
 	StopScriptName   = "stop.sh"
+	LogScriptName    = "logs.sh"
 	DefaultBranch    = "master"
 )
 
@@ -149,13 +151,15 @@ func initialize() {
 	log.Infof("Log directory %s created", path.Join(LogDir, "deploy"))
 	createDirIfNotExist(path.Join(LogDir, "git"))
 	log.Infof("Log directory %s created", path.Join(LogDir, "git"))
+	createDirIfNotExist(path.Join(LogDir, "service"))
+	log.Infof("Log directory %s created", path.Join(LogDir, "service"))
 
 	log.Info("Getting Servers Info")
 	getServers()
 
 }
 
-// DeployDialog is the format of the menu that will displayed for deploy dialog
+// DeployDialog is the format of the menu that will displayed for deploying a service
 var DeployDialog = []byte(`{
 	"callback_id": "deploy-xxxx",
 	"title": "Deploy App",
@@ -203,7 +207,7 @@ var DeployDialog = []byte(`{
 	]
 }`)
 
-// StopDialog is the format of the menu that will displayed for deploy dialog
+// StopDialog is the format of the menu that will displayed for stopping a service
 var StopDialog = []byte(`{
 	"callback_id": "stop-xxxx",
 	"title": "Stop App",
@@ -214,6 +218,35 @@ var StopDialog = []byte(`{
 			"label": "Github Repository",
 			"name": "git_repo",
 			"data_source": "external"
+		},
+		{
+			"label": "APP Channel",
+			"name": "channel",
+			"type": "select",
+			"data_source": "channels",
+			"value": "CGN56SGDS"
+		}
+	]
+}`)
+
+// LogsDialog is the format of the menu that will displayed for fetching logs
+var LogsDialog = []byte(`{
+	"callback_id": "logs-xxxx",
+	"title": "Fetch Logs",
+	"submit_label": "Fetch",
+	"elements": [
+		{
+			"type": "select",
+			"label": "Github Repository",
+			"name": "git_repo",
+			"data_source": "external"
+		},
+		{
+			"type": "text",
+			"subtype": "number",
+			"label": "Number of entries",
+			"name": "tail_count",
+			"placeholder": "\"all\" or number"
 		},
 		{
 			"label": "APP Channel",

@@ -38,8 +38,8 @@ func deployCommandHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	dialogJSON := f.(map[string]interface{})
-	DeployCount++
 	dialogJSON["callback_id"] = "deploy-" + strconv.Itoa(DeployCount)
+	DeployCount++
 
 	dialogMesg := make(map[string]interface{})
 	dialogMesg["trigger_id"] = triggerID
@@ -74,8 +74,43 @@ func stopCommandHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	dialogJSON := f.(map[string]interface{})
-	StopCount++
 	dialogJSON["callback_id"] = "stop-" + strconv.Itoa(StopCount)
+	StopCount++
+
+	dialogMesg := make(map[string]interface{})
+	dialogMesg["trigger_id"] = triggerID
+	dialogMesg["dialog"] = dialogJSON
+
+	log.Info("Created a dialog Message, Beginning to send it")
+	if dialogOpen(dialogMesg) == false {
+		log.Warn("Some error occured")
+		w.WriteHeader(500)
+	}
+}
+
+func logsCommandHandler(w http.ResponseWriter, r *http.Request) {
+
+	log.Infof("/logs command called on slack")
+
+	if validateRequestSlack(r) {
+		log.Infof("Request verification from slack: SUCCESS")
+	} else {
+		log.Warn("Request verification from slack: FAILED")
+		w.WriteHeader(403)
+		return
+	}
+
+	r.ParseForm()
+	triggerID := r.Form["trigger_id"][0]
+
+	var dialog interface{}
+	err := json.Unmarshal(LogsDialog, &dialog)
+	if err != nil {
+		panic(err)
+	}
+	dialogJSON := dialog.(map[string]interface{})
+	dialogJSON["callback_id"] = "logs-" + strconv.Itoa(LogsCount)
+	LogsCount++
 
 	dialogMesg := make(map[string]interface{})
 	dialogMesg["trigger_id"] = triggerID
@@ -110,9 +145,17 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
 	log.Infof(submissionDataMap["git_repo"].(string))
 	if strings.Contains(formPayloadMap["callback_id"].(string), "deploy") {
-		go deployGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
+
+		go deployGoRoutine(formPayloadMap["callback_id"].(string),
+			submissionDataMap)
+	} else if strings.Contains(formPayloadMap["callback_id"].(string), "stop") {
+
+		go stopGoRoutine(formPayloadMap["callback_id"].(string),
+			submissionDataMap)
 	} else {
-		go stopGoRoutine(formPayloadMap["callback_id"].(string), submissionDataMap)
+
+		go logsGoRoutine(formPayloadMap["callback_id"].(string),
+			submissionDataMap)
 	}
 }
 

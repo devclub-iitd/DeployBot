@@ -2,8 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
+	"os"
+	"os/exec"
+	"path"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateLogEntry(submissionData map[string]interface{}, action,
@@ -88,4 +94,52 @@ func SetCurrent(service, status, subdomain, access, server string) {
 
 	file, _ := json.Marshal(history)
 	_ = ioutil.WriteFile(historyFile, file, 0644)
+}
+
+func logsGoRoutine(callbackID string,
+	submissionDataMap map[string]interface{}) {
+
+	if chatPostMessage(submissionDataMap["channel"].(string),
+		"Fetching logs...", nil) == false {
+		log.Warn("Some error occured")
+		return
+	}
+
+	log.Infof("Fetching logs for service %s with callback_id as %s",
+		submissionDataMap["git_url"], callbackID)
+
+	output, err := getServiceLogs(submissionDataMap)
+
+	if err != nil {
+		_ = chatPostMessage(submissionDataMap["channel"].(string),
+			"Logs could not be fetched.\nERROR: "+err.Error(), nil)
+	} else {
+		filePath := path.Join(LogDir, "service", callbackID+".txt")
+		writeToFile(filePath, string(output))
+
+		log.Info("Starting timer for " + filePath)
+		go time.AfterFunc(time.Minute*5, func() {
+			os.Remove(filePath)
+			log.Infof("Deleted " + filePath)
+		})
+
+		_ = chatPostMessage(submissionDataMap["channel"].(string),
+			"Requested logs would be available at "+ServerURL+"/logs/service/"+
+				callbackID+".txt for 5 minutes.", nil)
+	}
+}
+
+func getServiceLogs(submissionDataMap map[string]interface{}) ([]byte, error) {
+	gitRepoURL := submissionDataMap["git_repo"].(string)
+	tailCount := submissionDataMap["tail_count"].(string)
+	current := GetCurrent(gitRepoURL)
+	serverName := current.Server
+
+	if current.Status != "running" {
+		log.Infof("Service %s is not running. Can't Fetch Logs.", gitRepoURL)
+		return []byte(""), errors.New("service not running")
+	}
+
+	return exec.Command(LogScriptName, gitRepoURL, serverName,
+		tailCount).CombinedOutput()
 }

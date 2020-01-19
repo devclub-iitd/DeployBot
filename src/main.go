@@ -13,17 +13,18 @@ func main() {
 	log.Info("Initialization completed successfully")
 
 	http.HandleFunc("/slack/commands/deploy/", deployCommandHandler)
-	http.HandleFunc("/slack/commands/stop", stopCommandHandler)
+	http.HandleFunc("/slack/commands/stop/", stopCommandHandler)
+	http.HandleFunc("/slack/commands/logs/", logsCommandHandler)
 	http.HandleFunc("/slack/interactive/request/", requestHandler)
 	http.HandleFunc("/slack/interactive/data-options/", dataOptionsHandler)
 
 	http.HandleFunc("/github/repo/", repoHandler)
 
 	http.HandleFunc("/logs/", logHandler)
-	http.HandleFunc("/status", statusHandler)
+	http.HandleFunc("/status/", statusHandler)
 	http.HandleFunc("/", okHandler)
 
-	http.HandleFunc("/history", historyHandler)
+	http.HandleFunc("/history/", historyHandler)
 
 	log.Infof("Starting HTTP Server on :%s", Port)
 
