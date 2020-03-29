@@ -21,7 +21,11 @@ RUN apk add --no-cache \
         gawk\
         gettext\
         curl\
-        coreutils
+        coreutils\
+        py-pip\
+        jq \
+        && pip install yq
+
 RUN git clone https://github.com/sobolevn/git-secret.git git-secret && cd git-secret && make build && PREFIX="/usr/local" make install
 
 VOLUME ["/root/.docker","/keys"]

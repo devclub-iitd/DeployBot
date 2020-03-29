@@ -502,7 +502,11 @@ pullImages() {
 pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  local images=`grep '^\s*image:\s*' docker-compose.yml | sed 's/.*${REGISTRY_NAME}//' | sed 's/["'\'']\?$//' | sort | uniq`
+  services=$(${__build_arg} ${__compose_command} config --services)
+
+  local images=$(echo "$services" | while read service; do
+    ${__build_arg} ${__compose_comand} config | yq -r .services."$service".image;
+    done)
 
   echo "${images}" | while read line; do
     repo=$(echo "$line" | cut -d":" -f1)
