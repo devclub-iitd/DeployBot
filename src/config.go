@@ -9,9 +9,11 @@ import (
 )
 
 // DeployCount is the global number of deploy requests handled
-var DeployCount = 0
-var StopCount = 0
-var LogsCount = 0
+var (
+	DeployCount int32 = 0
+	StopCount   int32 = 0
+	LogsCount   int32 = 0
+)
 
 // HooksScriptName is the name of script used to setup hooks
 const (
@@ -22,14 +24,14 @@ const (
 	DefaultBranch    = "master"
 )
 
-//All the deploy and stop requests are logged in historyFile
-//templateFile is html template for viewing running services
+// All the deploy and stop requests are logged in historyFile
+// templateFile is html template for viewing running services
 const (
 	historyFile  = "/etc/nginx/history.json"
 	templateFile = "status_template.html"
 )
 
-//Type for logging one deploy or stop request
+// Type for logging one deploy or stop request
 type ActionInstance struct {
 	Action    string    `json:"action"`
 	Subdomain string    `json:"subdomain"`
@@ -39,7 +41,7 @@ type ActionInstance struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-//Type for storing current state of service
+// Type for storing current state of service
 type State struct {
 	Status    string `json:"status"`
 	Subdomain string `json:"subdomain"`
@@ -159,101 +161,115 @@ func initialize() {
 
 }
 
+type Dialog struct {
+	Name    string
+	Content []byte
+}
+
 // DeployDialog is the format of the menu that will displayed for deploying a service
-var DeployDialog = []byte(`{
-	"callback_id": "deploy-xxxx",
-	"title": "Deploy App",
-	"submit_label": "Deploy",
-	"elements": [
-		{
-			"type": "select",
-			"label": "Github Repository",
-			"name": "git_repo",
-			"data_source": "external"
-		},
-		{
-			"type": "select",
-			"label": "Server Name",
-			"name": "server_name",
-			"data_source": "external"
-		},
-		{
-			"label": "Subdomain",
-			"name": "subdomain",
-			"type": "text"
-		},
-		{
-			"label": "Access",
-			"name": "access",
-			"type": "select",
-			"options": [
-    				{
-      					"label": "Internal",
-      					"value": "internal"
-    				},
-    				{
-      					"label": "External",
-      					"value": "external"
-    				}
-			]
-		},
-		{
-			"label": "APP Channel",
-			"name": "channel",
-			"type": "select",
-			"data_source": "channels",
-			"value": "CGN56SGDS"
-		}
-	]
-}`)
+var DeployDialog = Dialog{
+	Name: "deploy",
+	Content: []byte(`{
+    "callback_id": "deploy-xxxx",
+    "title": "Deploy App",
+    "submit_label": "Deploy",
+    "elements": [
+      {
+        "type": "select",
+        "label": "Github Repository",
+        "name": "git_repo",
+        "data_source": "external"
+      },
+      {
+        "type": "select",
+        "label": "Server Name",
+        "name": "server_name",
+        "data_source": "external"
+      },
+      {
+        "label": "Subdomain",
+        "name": "subdomain",
+        "type": "text"
+      },
+      {
+        "label": "Access",
+        "name": "access",
+        "type": "select",
+        "options": [
+              {
+                  "label": "Internal",
+                  "value": "internal"
+              },
+              {
+                  "label": "External",
+                  "value": "external"
+              }
+        ]
+      },
+      {
+        "label": "APP Channel",
+        "name": "channel",
+        "type": "select",
+        "data_source": "channels",
+        "value": "CGN56SGDS"
+      }
+    ]
+  }`),
+}
 
 // StopDialog is the format of the menu that will displayed for stopping a service
-var StopDialog = []byte(`{
-	"callback_id": "stop-xxxx",
-	"title": "Stop App",
-	"submit_label": "Stop",
-	"elements": [
-		{
-			"type": "select",
-			"label": "Github Repository",
-			"name": "git_repo",
-			"data_source": "external"
-		},
-		{
-			"label": "APP Channel",
-			"name": "channel",
-			"type": "select",
-			"data_source": "channels",
-			"value": "CGN56SGDS"
-		}
-	]
-}`)
+var StopDialog = Dialog{
+	Name: "stop",
+	Content: []byte(`{
+    "callback_id": "stop-xxxx",
+    "title": "Stop App",
+    "submit_label": "Stop",
+    "elements": [
+      {
+        "type": "select",
+        "label": "Github Repository",
+        "name": "git_repo",
+        "data_source": "external"
+      },
+      {
+        "label": "APP Channel",
+        "name": "channel",
+        "type": "select",
+        "data_source": "channels",
+        "value": "CGN56SGDS"
+      }
+    ]
+  }`),
+}
 
 // LogsDialog is the format of the menu that will displayed for fetching logs
-var LogsDialog = []byte(`{
-	"callback_id": "logs-xxxx",
-	"title": "Fetch Logs",
-	"submit_label": "Fetch",
-	"elements": [
-		{
-			"type": "select",
-			"label": "Github Repository",
-			"name": "git_repo",
-			"data_source": "external"
-		},
-		{
-			"type": "text",
-			"subtype": "number",
-			"label": "Number of entries",
-			"name": "tail_count",
-			"placeholder": "\"all\" or number"
-		},
-		{
-			"label": "APP Channel",
-			"name": "channel",
-			"type": "select",
-			"data_source": "channels",
-			"value": "CGN56SGDS"
-		}
-	]
-}`)
+var LogsDialog = Dialog{
+	Name: "logs",
+	Content: []byte(`{
+    "callback_id": "logs-xxxx",
+    "title": "Fetch Logs",
+    "submit_label": "Fetch",
+    "elements": [
+      {
+        "type": "select",
+        "label": "Github Repository",
+        "name": "git_repo",
+        "data_source": "external"
+      },
+      {
+        "type": "text",
+        "subtype": "number",
+        "label": "Number of entries",
+        "name": "tail_count",
+        "placeholder": "\"all\" or number"
+      },
+      {
+        "label": "APP Channel",
+        "name": "channel",
+        "type": "select",
+        "data_source": "channels",
+        "value": "CGN56SGDS"
+      }
+    ]
+  }`),
+}

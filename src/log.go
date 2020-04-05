@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CreateLogEntry creates a log entry for an action taken on a service in the history file
 func CreateLogEntry(submissionData map[string]interface{}, action,
 	result string) {
 
@@ -39,15 +41,19 @@ func CreateLogEntry(submissionData map[string]interface{}, action,
 
 }
 
-func GetStatus(service string) string {
-	bytes, _ := ioutil.ReadFile(historyFile)
+// GetStatus gets the current status of a given service aka git repo url
+func GetStatus(service string) (string, error) {
+	bytes, err := ioutil.ReadFile(historyFile)
+	if err != nil {
+		return "", fmt.Errorf("cannot read historyFile(%s) - %v", historyFile, err)
+	}
 	var history map[string]Service
 	json.Unmarshal([]byte(bytes), &history)
 
 	if val, ok := history[service]; ok {
-		return val.Current.Status
+		return val.Current.Status, nil
 	}
-	return "stopped"
+	return "stopped", nil
 }
 
 func GetCurrent(service string) State {
@@ -99,9 +105,9 @@ func SetCurrent(service, status, subdomain, access, server string) {
 func logsGoRoutine(callbackID string,
 	submissionDataMap map[string]interface{}) {
 
-	if chatPostMessage(submissionDataMap["channel"].(string),
-		"Fetching logs...", nil) == false {
-		log.Warn("Some error occured")
+	if err := chatPostMessage(submissionDataMap["channel"].(string),
+		"Fetching logs...", nil); err != nil {
+		log.Warnf("error occured in posting message - %v", err)
 		return
 	}
 

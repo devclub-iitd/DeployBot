@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,19 +15,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func getGitRepos() {
-
+func getGitRepos() error {
 	u, err := url.Parse(GithubAPIURL)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("cannot parse github url %s - %v", GithubAPIURL, err)
 	}
 	u.Path = path.Join(u.Path, "orgs/"+OrganizationName+"/repos")
 
-	log.Info("Sending a HTTP GET request to github.com to get repo lists")
-	log.Info(u.String())
-	resp, err := http.Get(u.String()+"?per_page=100")
+	log.Infof("sending an HTTP GET request to %s to get list of repos", u.Path)
+	resp, err := http.Get(u.String() + "?per_page=100")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("request failed - %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -41,16 +40,14 @@ func getGitRepos() {
 
 	var repoList interface{}
 
-	err = json.NewDecoder(reader).Decode(&repoList)
-	if err != nil {
-		panic(err)
+	if err := json.NewDecoder(reader).Decode(&repoList); err != nil {
+		return fmt.Errorf("cannot parse response into json - %v", err)
 	}
 	var repoOptionsList []RepoOption
 	for _, repoInterface := range repoList.([]interface{}) {
 		repoMap := repoInterface.(map[string]interface{})
 		repoName := repoMap["name"].(string)
 		repoURL := repoMap["ssh_url"].(string)
-
 		Repositories = append(Repositories, Repo{
 			Name: repoName,
 			URL:  repoURL})
@@ -63,35 +60,33 @@ func getGitRepos() {
 	repoOptions["options"] = repoOptionsList
 	RepoOptionsByte, err = json.Marshal(repoOptions)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("cannot marshal the list of repos to bytes - %v", err)
 	}
-	log.Info("Repo Options successfully set with latest repositories")
-
+	log.Info("repo options successfully set with latest repositories")
+	return nil
 }
 
 func validateRequestGit(r *http.Request) bool {
-
 	sig := r.Header["X-Hub-Signature"][0]
 	bodyBytes, _ := ioutil.ReadAll(r.Body)
 	dupReader := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	r.Body = dupReader
-
 	bodyString := string(bodyBytes)
-
-	sha := getHash(bodyString, GithubSecret, "sha1")
-
-	if ("sha1=" + sha) == sig {
-		return true
+	if sha, err := getHash(bodyString, GithubSecret, "sha1"); err != nil {
+		log.Errorf("cannot get hash of payload %s - %v", bodyString, err)
+	} else {
+		if ("sha1=" + sha) == sig {
+			return true
+		}
 	}
 	return false
 }
 
 func parseRepoEvent(msg interface{}) (string, string) {
-
 	payloadMap := msg.(map[string]interface{})
 	action := payloadMap["action"].(string)
 	if action != "created" {
-		log.Info("Event type is not of repo creation")
+		log.Info("event type is not of repo creation")
 		return "", "None"
 	}
 	repoMap := payloadMap["repository"].(map[string]interface{})
@@ -101,9 +96,7 @@ func parseRepoEvent(msg interface{}) (string, string) {
 }
 
 func addHooks(repoURL string) ([]byte, error) {
-
 	log.Infof("Calling %s to initialize hooks for repo", HooksScriptName)
-
 	output, err := exec.Command(HooksScriptName, repoURL).CombinedOutput()
 	return output, err
 }

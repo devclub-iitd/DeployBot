@@ -7,12 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func stopGoRoutine(callbackID string,
-	submissionDataMap map[string]interface{}) {
-
-	if chatPostMessage(submissionDataMap["channel"].(string),
-		"Stopping service...", nil) == false {
-		log.Warn("Some error occured")
+func stopGoRoutine(callbackID string, submissionDataMap map[string]interface{}) {
+	if err := chatPostMessage(submissionDataMap["channel"].(string), "Stopping service...", nil); err != nil {
+		log.Warnf("error occured in posting chat message - %v", err)
 		return
 	}
 
@@ -60,20 +57,20 @@ func StopApp(submissionData map[string]interface{}) ([]byte, error) {
 		}
 	} else if status == "stopped" {
 
-		log.Infof("Service is already stopped", DeployScriptName)
+		log.Infof("Service is already stopped - %v", DeployScriptName)
 
 		output = []byte("Service is already stopped!")
 		err = errors.New("already stopped")
 	} else if status == "stopping" {
 
 		log.Infof("Service is being stopped. Can't start another stop "+
-			"instance.", DeployScriptName)
+			"instance -%v", DeployScriptName)
 
 		output = []byte("Service is already being stopped.")
 		err = errors.New("already stopping")
 	} else {
 
-		log.Infof("Service is being deployed.", DeployScriptName)
+		log.Infof("Service is being deployed -%v", DeployScriptName)
 
 		output = []byte("Service is being deployed. Please wait for the " +
 			"process to be completed and try again.")

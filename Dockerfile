@@ -5,7 +5,7 @@ COPY ./src/*.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o DeployBot -a -ldflags '-extldflags "-static"' .
 
 FROM docker:18.06
-LABEL maintainer="ozym4nd145@outlook.com"
+LABEL maintainer="devclubiitd@gmail.com"
 RUN wget https://github.com/docker/machine/releases/download/v0.14.0/docker-machine-`uname -s`-`uname -m` -O /usr/local/bin/docker-machine && \
         chmod +x /usr/local/bin/docker-machine
 RUN apk upgrade --update-cache --available
