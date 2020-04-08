@@ -1,5 +1,5 @@
-FROM golang:1.10 as builder
-WORKDIR /go/src/github.com/devclub-iitd/DeployBot/
+FROM golang:1.14 as builder
+WORKDIR /go/src/github.com/devclub-iitd/DeployBot/src/
 RUN go get -v github.com/sirupsen/logrus
 COPY ./src/*.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o DeployBot -a -ldflags '-extldflags "-static"' .
@@ -31,7 +31,7 @@ RUN git clone https://github.com/sobolevn/git-secret.git git-secret && cd git-se
 VOLUME ["/root/.docker","/keys"]
 
 WORKDIR /usr/local/bin/
-COPY --from=builder /go/src/github.com/devclub-iitd/DeployBot/DeployBot .
+COPY --from=builder /go/src/github.com/devclub-iitd/DeployBot/src/DeployBot .
 COPY ./scripts/* /usr/local/bin/
 
 EXPOSE 7777/tcp

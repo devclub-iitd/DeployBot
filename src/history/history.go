@@ -1,28 +1,34 @@
-package main
+package history
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/exec"
-	"path"
+	"net/http"
+	"text/template"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateLogEntry creates a log entry for an action taken on a service in the history file
-func CreateLogEntry(submissionData map[string]interface{}, action,
-	result string) {
+func getHistory(history *map[string]Service) error {
+	bytes, err := ioutil.ReadFile(historyFile)
+	if err != nil {
+		return fmt.Errorf("cannot read historyFile(%s) - %v", historyFile, err)
+	}
+	json.Unmarshal(bytes, &history)
+	return nil
+}
 
-	bytes, _ := ioutil.ReadFile(historyFile)
+// CreateLogEntry creates a log entry for an action taken on a service in the history file
+func CreateLogEntry(submissionData map[string]interface{}, action, result string) {
 	history := make(map[string]Service)
-	json.Unmarshal([]byte(bytes), &history)
+	if err := getHistory(&history); err != nil {
+		log.Errorf("cannot load history file - %v", err)
+		return
+	}
 
 	var service ActionInstance
-
 	if action == "up" {
 		service = ActionInstance{
 			action, submissionData["subdomain"].(string),
@@ -43,12 +49,8 @@ func CreateLogEntry(submissionData map[string]interface{}, action,
 
 // GetStatus gets the current status of a given service aka git repo url
 func GetStatus(service string) (string, error) {
-	bytes, err := ioutil.ReadFile(historyFile)
-	if err != nil {
-		return "", fmt.Errorf("cannot read historyFile(%s) - %v", historyFile, err)
-	}
+
 	var history map[string]Service
-	json.Unmarshal([]byte(bytes), &history)
 
 	if val, ok := history[service]; ok {
 		return val.Current.Status, nil
@@ -102,50 +104,20 @@ func SetCurrent(service, status, subdomain, access, server string) {
 	_ = ioutil.WriteFile(historyFile, file, 0644)
 }
 
-func logsGoRoutine(callbackID string,
-	submissionDataMap map[string]interface{}) {
-
-	if err := chatPostMessage(submissionDataMap["channel"].(string),
-		"Fetching logs...", nil); err != nil {
-		log.Warnf("error occured in posting message - %v", err)
-		return
-	}
-
-	log.Infof("Fetching logs for service %s with callback_id as %s",
-		submissionDataMap["git_url"], callbackID)
-
-	output, err := getServiceLogs(submissionDataMap)
-
-	if err != nil {
-		_ = chatPostMessage(submissionDataMap["channel"].(string),
-			"Logs could not be fetched.\nERROR: "+err.Error(), nil)
-	} else {
-		filePath := path.Join(LogDir, "service", callbackID+".txt")
-		writeToFile(filePath, string(output))
-
-		log.Info("Starting timer for " + filePath)
-		go time.AfterFunc(time.Minute*5, func() {
-			os.Remove(filePath)
-			log.Infof("Deleted " + filePath)
-		})
-
-		_ = chatPostMessage(submissionDataMap["channel"].(string),
-			"Requested logs would be available at "+ServerURL+"/logs/service/"+
-				callbackID+".txt for 5 minutes.", nil)
-	}
+func HistoryHandler(w http.ResponseWriter, r *http.Request) {
+	bytes, _ := ioutil.ReadFile(historyFile)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
 }
 
-func getServiceLogs(submissionDataMap map[string]interface{}) ([]byte, error) {
-	gitRepoURL := submissionDataMap["git_repo"].(string)
-	tailCount := submissionDataMap["tail_count"].(string)
-	current := GetCurrent(gitRepoURL)
-	serverName := current.Server
+func StatusHandler(w http.ResponseWriter, r *http.Request) {
+	bytes, _ := ioutil.ReadFile(historyFile)
+	history := make(map[string]Service)
+	json.Unmarshal([]byte(bytes), &history)
 
-	if current.Status != "running" {
-		log.Infof("Service %s is not running. Can't Fetch Logs.", gitRepoURL)
-		return []byte(""), errors.New("service not running")
+	tmpl, err := template.ParseFiles(templateFile)
+	if err != nil {
+		log.Error(err.Error())
 	}
-
-	return exec.Command(LogScriptName, gitRepoURL, serverName,
-		tailCount).CombinedOutput()
+	tmpl.Execute(w, history)
 }

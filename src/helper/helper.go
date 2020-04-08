@@ -1,4 +1,5 @@
-package main
+// Package helper contains various helper functions.
+package helper
 
 import (
 	"crypto/hmac"
@@ -10,7 +11,15 @@ import (
 	"os"
 )
 
-func getenv(key, fallback string) string {
+// DeployCount is the global number of deploy requests handled
+var (
+	DeployCount int32 = 0
+	StopCount   int32 = 0
+	LogsCount   int32 = 0
+)
+
+// Env returns the value of the environment variable if present, or returns the fallback value
+func Env(key, fallback string) string {
 	value := os.Getenv(key)
 	if len(value) == 0 {
 		return fallback
@@ -18,7 +27,8 @@ func getenv(key, fallback string) string {
 	return value
 }
 
-func getHash(payload, secret, hashType string) (string, error) {
+// Hash hashes a payload, with a secret with a given hash type (sha1 or sha256)
+func Hash(payload, secret, hashType string) (string, error) {
 	var hashFn func() hash.Hash
 	switch hashType {
 	case "sha256":
@@ -34,7 +44,8 @@ func getHash(payload, secret, hashType string) (string, error) {
 	return hash, nil
 }
 
-func writeToFile(filePath, text string) error {
+// WriteToFile writes a given string to a file. It creates the file if it is not present
+func WriteToFile(filePath, text string) error {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("cannot create file - %v", err)
@@ -48,7 +59,8 @@ func writeToFile(filePath, text string) error {
 	return nil
 }
 
-func createDirIfNotExist(dir string) error {
+// CreateDirIfNotExist creates a given directory if it does not exist
+func CreateDirIfNotExist(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err1 := os.MkdirAll(dir, 0755); err1 != nil {
 			return fmt.Errorf("cannot create directory - %v", err1)
