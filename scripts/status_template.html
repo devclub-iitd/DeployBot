@@ -13,14 +13,18 @@
         <th>Subdomain</th>
         <th>Server</th>
         <th>Access</th>
+        <th>Healthy?</th>
+        <th>Timestamp</th>
       </tr>
       {{ range $key, $value := .}}
-        {{if eq $value.Current.Status "running"}}
+        {{if eq $value.Status "running"}}
         <tr>
           <td>{{$key}}</td>
-          <td>{{$value.Current.Subdomain}}</td>
-          <td>{{$value.Current.Server}}</td>
-          <td>{{$value.Current.Access}}</td>
+          <td>{{$value.Subdomain}}</td>
+          <td>{{$value.Server}}</td>
+          <td>{{$value.Access}}</td>
+          <td>{{$value.Healthy}}</td>
+          <td>{{$value.Timestamp}}</td>
         </tr>
         {{end}}
       {{end}}

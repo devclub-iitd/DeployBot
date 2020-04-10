@@ -31,7 +31,7 @@ func main() {
 	// General status and history HTTP handlers
 	http.HandleFunc("/logs/", controllers.LogHandler)
 	http.HandleFunc("/status/", history.StatusHandler)
-	http.HandleFunc("/history/", history.HistoryHandler)
+	http.HandleFunc("/history/", history.Handler)
 
 	// General Health checking handlers
 	http.HandleFunc("/", okHandler)

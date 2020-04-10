@@ -1,6 +1,7 @@
 FROM golang:1.14 as builder
 WORKDIR /go/src/github.com/devclub-iitd/DeployBot/src/
 RUN go get -v github.com/sirupsen/logrus
+RUN go get -v go.uber.org/zap
 COPY ./src/*.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o DeployBot -a -ldflags '-extldflags "-static"' .
 

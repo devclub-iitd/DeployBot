@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path"
 
+	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/slack"
 	log "github.com/sirupsen/logrus"
@@ -12,54 +14,61 @@ import (
 
 // stop stops a running service based on the response from slack
 func stop(callbackID string, data map[string]interface{}) {
-	repoURL := data["git_repo"].(string)
-	channelID := data["channel"].(string)
-	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Stopping service (%s) ...", repoURL), nil); err != nil {
+	channel := data["channel"].(string)
+	actionLog := history.NewAction("stop", data)
+	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Warnf("error occured in posting chat message - %v", err)
 		return
 	}
-	log.Infof("stopping service %s with callback_id as %s", repoURL, callbackID)
+	log.Infof("beginning %s with callback_id as %s", actionLog, callbackID)
 
-	if _, err := internalStop(data); err != nil {
-		history.CreateLogEntry(data, "down", "failed")
-		_ = slack.PostChatMessage(channelID, fmt.Sprintf("%s cannot be stopped.\n ERROR: %s", repoURL, err.Error()), nil)
+	logPath := fmt.Sprintf("stop/%s.txt", callbackID)
+
+	output, err := internalStop(actionLog)
+	helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	actionLog.LogPath = logPath
+	if err != nil {
+		actionLog.Result = "failed"
+		history.StoreAction(actionLog)
+		slack.PostChatMessage(channel, fmt.Sprintf("%s\nError: %s\n", actionLog, err.Error()), nil)
 	} else {
-		history.CreateLogEntry(data, "down", "successful")
-		_ = slack.PostChatMessage(channelID, fmt.Sprintf("%s stopped successfully.\n", repoURL), nil)
+		actionLog.Result = "success"
+		history.StoreAction(actionLog)
+		slack.PostChatMessage(channel, actionLog.String(), nil)
 	}
 }
 
 // internalStop actually runs the script to stop the given app.
-func internalStop(data map[string]interface{}) ([]byte, error) {
-	gitRepoURL := data["git_repo"].(string)
-	current := history.GetCurrent(gitRepoURL)
-	subdomain := current.Subdomain
-	serverName := current.Server
-	status := current.Status
+func internalStop(a *history.ActionInstance) ([]byte, error) {
+	state := history.GetState(a.RepoURL)
 
 	var output []byte
 	var err error
 
-	if status == "running" {
-		log.Infof("calling %s to stop service(%s)", stopScriptName, gitRepoURL)
-		history.SetStatus(gitRepoURL, "stopping")
-		if output, err = exec.Command(stopScriptName, subdomain, gitRepoURL, serverName).CombinedOutput(); err != nil {
-			history.SetStatus(gitRepoURL, "running")
-		} else {
-			history.SetCurrent(gitRepoURL, "stopped", "", "", "")
-		}
-	} else if status == "stopped" {
-		log.Infof("service(%s) is already stopped", gitRepoURL)
-		output = []byte("Service is already stopped!")
-		err = errors.New("already stopped")
-	} else if status == "stopping" {
-		log.Infof("service(%s) is being stopped. Can't start another stop instance", gitRepoURL)
-		output = []byte("Service is already being stopped.")
-		err = errors.New("already stopping")
-	} else if status == "deploying" {
-		log.Infof("service(%s) is being deployed", gitRepoURL)
+	switch state.Status {
+	case "deploying":
+		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot stop while deploying")
+	case "stopping":
+		log.Infof("service(%s) is being stopped. Can't start another stop instance", a.RepoURL)
+		output = []byte("Service is already being stopped.")
+		err = errors.New("already stopping")
+	case "running":
+		log.Infof("calling %s to stop service(%s)", stopScriptName, a.RepoURL)
+		state.Status = "stopping"
+		history.SetState(a.RepoURL, state)
+		if output, err = exec.Command(stopScriptName, state.Subdomain, a.RepoURL, state.Server).CombinedOutput(); err != nil {
+			state.Status = "running"
+			history.SetState(a.RepoURL, state)
+		} else {
+			state.Status = "stopped"
+			history.SetState(a.RepoURL, state)
+		}
+	default:
+		log.Infof("service(%s) is already stopped", a.RepoURL)
+		output = []byte("Service is already stopped!")
+		err = errors.New("already stopped")
 	}
 	return output, err
 }

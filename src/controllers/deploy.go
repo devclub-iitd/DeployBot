@@ -14,72 +14,70 @@ import (
 
 // deploy deploys a given slack request using the deploy.sh
 func deploy(callbackID string, data map[string]interface{}) {
-	if err := slack.PostChatMessage(data["channel"].(string), "Deployment in Progress", nil); err != nil {
+	channel := data["channel"].(string)
+	actionLog := history.NewAction("deploy", data)
+	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Errorf("cannot post begin deployment chat message - %v", err)
 		return
 	}
-	log.Infof("beginning deployment of %s on server %s with subdomain as %s with callback_id as %s", data["git_repo"], data["server_name"], data["subdomain"], callbackID)
+	log.Infof("beginning %s with callback_id as %s", actionLog, callbackID)
 
-	output, err := internaldeploy(data)
-	helper.WriteToFile(path.Join(logDir, "deploy", callbackID+".txt"), string(output))
+	logPath := fmt.Sprintf("deploy/%s.txt", callbackID)
+	output, err := internaldeploy(actionLog)
 
+	helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	actionLog.LogPath = logPath
 	if err != nil {
-		log.Errorf("Deployment Failed - %v", err)
-		history.CreateLogEntry(data, "up", "failed")
-		_ = slack.PostChatMessage(data["channel"].(string),
-			"Deployment of "+data["git_repo"].(string)+" on "+
-				data["server_name"].(string)+" with subdomain "+
-				data["subdomain"].(string)+" FAILED\n\n  "+
-				"See logs at: "+serverURL+"/logs/deploy/"+callbackID+".txt\n"+
-				"ERROR: "+err.Error(), nil)
+		actionLog.Result = "failed"
+		log.Errorf("%s - %v", actionLog, err)
+		history.StoreAction(actionLog)
+		slack.PostChatMessage(channel, fmt.Sprintf("%s\nError: %s\n", actionLog, err.Error()), nil)
 	} else {
-		log.Info("Deployment Successful")
-		history.CreateLogEntry(data, "up", "successful")
-		_ = slack.PostChatMessage(data["channel"].(string),
-			"Deployment of "+data["git_repo"].(string)+" on "+
-				data["server_name"].(string)+" with subdomain "+
-				data["subdomain"].(string)+" Successful\n\n  "+
-				"See logs at: "+serverURL+"/logs/deploy/"+callbackID+".txt", nil)
+		actionLog.Result = "success"
+		log.Info(actionLog.String())
+		history.StoreAction(actionLog)
+		slack.PostChatMessage(channel, fmt.Sprintf("%s\n", actionLog), nil)
 	}
 }
 
 // internaldeploy deploys the given app on the server specified.
-func internaldeploy(data map[string]interface{}) ([]byte, error) {
-	gitRepoURL := data["git_repo"].(string)
-	serverName := data["server_name"].(string)
-	subdomain := data["subdomain"].(string)
-	access := data["access"].(string)
+func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
 
-	status, err := history.GetStatus(gitRepoURL)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get current status of service(%s) - %v", gitRepoURL, err)
-	}
+	// This is a value, and thus modifying it does not change the original state in the history map
+	state := history.GetState(a.RepoURL)
 
 	var output []byte
-	if status == "stopped" {
-		log.Infof("calling %s to deploy %s on %s", deployScriptName, gitRepoURL, serverName)
-		history.SetStatus(gitRepoURL, "deploying")
-		output, err = exec.Command(deployScriptName, "-n", "-u",
-			gitRepoURL, "-b", branch, "-m", serverName, "-s", subdomain, "-a",
-			access).CombinedOutput()
-		if err != nil {
-			history.SetStatus(gitRepoURL, "stopped")
-		} else {
-			history.SetCurrent(gitRepoURL, "running", subdomain, access, serverName)
-		}
-	} else if status == "running" {
-		log.Infof("service(%s) is already running", gitRepoURL)
+	var err error
+	switch state.Status {
+	case "running":
+		log.Infof("service(%s) is already running", a.RepoURL)
 		output = []byte("Service is already running!")
 		err = errors.New("already running")
-	} else if status == "stopping" {
-		log.Infof("service(%s) is stopping. Can't deploy.", gitRepoURL)
+	case "stopping":
+		log.Infof("service(%s) is stopping. Can't deploy.", a.RepoURL)
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot deploy while service is stopping")
-	} else if status == "deploying" {
-		log.Infof("service(%s) is being deployed", gitRepoURL)
+	case "deploying":
+		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")
+	// Assume that, either the service is stopped or does not exist, which means we can deploy.
+	default:
+		log.Infof("calling %s to deploy %s on %s", deployScriptName, a.RepoURL, a.Server)
+		state.Subdomain = a.Subdomain
+		state.Access = a.Access
+		state.Server = a.Server
+		state.Status = "deploying"
+		history.SetState(a.RepoURL, state)
+		output, err = exec.Command(deployScriptName, "-n", "-u", a.RepoURL, "-b", branch, "-m", a.Server, "-s", a.Subdomain, "-a", a.Access).CombinedOutput()
+		if err != nil {
+			state.Status = "stopped"
+			history.SetState(a.RepoURL, state)
+		} else {
+			state.Status = "running"
+			history.SetState(a.RepoURL, state)
+		}
 	}
 	return output, err
 }

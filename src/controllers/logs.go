@@ -43,7 +43,7 @@ func logs(callbackID string, data map[string]interface{}) {
 func internalLogs(data map[string]interface{}) ([]byte, error) {
 	gitRepoURL := data["git_repo"].(string)
 	tailCount := data["tail_count"].(string)
-	current := history.GetCurrent(gitRepoURL)
+	current := history.GetState(gitRepoURL)
 	serverName := current.Server
 	if current.Status != "running" {
 		log.Infof("service %s is not running, cannot fetch logs", gitRepoURL)

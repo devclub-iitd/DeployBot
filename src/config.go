@@ -8,20 +8,20 @@ import (
 )
 
 var (
-	// ServerURL is the URL at which the server is listening to requests
+	// serverURL is the URL at which the server is listening to requests
 	serverURL string
-	// Port is the HTTP Port on which the go code will listen
+	// port is the HTTP Port on which the go code will listen
 	port string
 )
 
 func init() {
-
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
 	port = helper.Env("PORT", "7777")
 
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		FullTimestamp:    true,
+		DisableColors:    true,
 		TimestampFormat:  "Mon Jan _2 15:04:05 2006",
 	})
 
