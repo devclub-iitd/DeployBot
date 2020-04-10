@@ -11,6 +11,7 @@ import (
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
+	"github.com/teris-io/shortid"
 )
 
 // validateRequest validates if a request came from slack.com or not
@@ -69,6 +70,15 @@ func dialogOpen(payload map[string]interface{}) error {
 	return nil
 }
 
+func uuid(counter *int32) string {
+	id, err := shortid.Generate()
+	if err != nil {
+		log.Errorf("cannot generate a uuid, falling back to counter - %v", err)
+		return fmt.Sprintf("%d", atomic.LoadInt32(counter))
+	}
+	return id
+}
+
 // dialogHandler is a function that has the functionality for handling slack HTTP requests that require initiating a dialog
 func dialogHandler(r *http.Request, d dialog, counter *int32) (status int, err error) {
 	if !validateRequest(r) {
@@ -83,7 +93,8 @@ func dialogHandler(r *http.Request, d dialog, counter *int32) (status int, err e
 		return 500, fmt.Errorf("cannot unmarshall the dialog bytes - %v", err)
 	}
 	dialogJSON := f.(map[string]interface{})
-	dialogJSON["callback_id"] = fmt.Sprintf("%s-%d", d.name, atomic.LoadInt32(counter))
+
+	dialogJSON["callback_id"] = fmt.Sprintf("%s-%s", d.name, uuid(counter))
 	atomic.AddInt32(counter, 1)
 
 	dialogMsg := make(map[string]interface{})
