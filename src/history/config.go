@@ -17,17 +17,19 @@ import (
 // All the deploy and stop requests are logged in historyFile
 // templateFile is html template for viewing running services
 const (
-	historyFile  = "/etc/nginx/history.json"
 	templateFile = "status_template.html"
 )
 
-// serverURL is the URL of the server
-var serverURL string
+var (
+	historyFile string
+	// serverURL is the URL of the server
+	serverURL string
 
-var statusTemplate *template.Template
+	statusTemplate *template.Template
 
-// sugar is the zap logger that is used to log actions in a structured log format
-var sugar *zap.SugaredLogger
+	// sugar is the zap logger that is used to log actions in a structured log format
+	sugar *zap.SugaredLogger
+)
 
 // ActionInstance type stores one log entry for a deploy or stop request
 type ActionInstance struct {
@@ -93,6 +95,7 @@ func (a *ActionInstance) Fields() []interface{} {
 		zap.String("action", a.Action),
 		zap.String("user", a.User),
 		zap.String("result", a.Result),
+		zap.String("log_path", a.LogPath),
 	}
 	if a.Action == "deploy" {
 		fields = append(fields,
@@ -142,6 +145,7 @@ var mux sync.Mutex
 
 func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
+	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/history.json")
 
 	var err error
 	cfg := zap.Config{

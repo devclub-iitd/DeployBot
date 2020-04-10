@@ -32,10 +32,24 @@ func init() {
 	logDir = helper.Env("LOG_DIR", "/var/logs/deploybot/")
 
 	log.Info("Setting Up Log directory")
-	helper.CreateDirIfNotExist(path.Join(logDir, "deploy"))
+
+	if err := helper.CreateDirIfNotExist(path.Join(logDir, "deploy")); err != nil {
+		log.Fatalf("cannot create directory %s - %v", path.Join(logDir, "deploy"), err)
+	}
 	log.Infof("Log directory %s created", path.Join(logDir, "deploy"))
-	helper.CreateDirIfNotExist(path.Join(logDir, "git"))
+
+	if err := helper.CreateDirIfNotExist(path.Join(logDir, "stop")); err != nil {
+		log.Fatalf("cannot create directory %s - %v", path.Join(logDir, "stop"), err)
+	}
+	log.Infof("Log directory %s created", path.Join(logDir, "stop"))
+
+	if err := helper.CreateDirIfNotExist(path.Join(logDir, "git")); err != nil {
+		log.Fatalf("cannot create directory %s - %v", path.Join(logDir, "git"), err)
+	}
 	log.Infof("Log directory %s created", path.Join(logDir, "git"))
-	helper.CreateDirIfNotExist(path.Join(logDir, "service"))
+
+	if err := helper.CreateDirIfNotExist(path.Join(logDir, "service")); err != nil {
+		log.Fatalf("cannot create directory %s - %v", path.Join(logDir, "service"), err)
+	}
 	log.Infof("Log directory %s created", path.Join(logDir, "service"))
 }

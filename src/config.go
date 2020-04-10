@@ -5,6 +5,7 @@ import (
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var (
@@ -18,12 +19,12 @@ func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
 	port = helper.Env("PORT", "7777")
 
-	log.SetFormatter(&log.TextFormatter{
-		DisableTimestamp: false,
-		FullTimestamp:    true,
-		DisableColors:    true,
-		TimestampFormat:  "Mon Jan _2 15:04:05 2006",
-	})
+	formatter := new(prefixed.TextFormatter)
+	formatter.DisableColors = true
+	formatter.FullTimestamp = true
+	formatter.TimestampFormat = "Mon Jan _2 15:04:05 2006"
+
+	log.SetFormatter(formatter)
 
 	// Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)

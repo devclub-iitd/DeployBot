@@ -15,7 +15,7 @@ import (
 
 // logs runs the controller to get logs for a service
 func logs(callbackID string, data map[string]interface{}) {
-	repoURL := data["git_url"].(string)
+	repoURL := data["git_repo"].(string)
 	channelID := data["channel"].(string)
 	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", repoURL), nil); err != nil {
 		log.Warnf("error occured in posting message - %v", err)

@@ -58,7 +58,7 @@ var serverOptionsByte []byte
 func servers() error {
 	log.Info("executing docker-machine to get list of servers")
 	cmd := "docker-machine ls --filter state=Running | tail -n+2 | awk '{print $1}'"
-	output, err := exec.Command("bash", "-c", cmd).CombinedOutput()
+	output, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		return fmt.Errorf("cannot get information about servers - %v", err)
 	}
