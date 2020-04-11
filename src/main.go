@@ -8,6 +8,7 @@ import (
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/options"
 	"github.com/devclub-iitd/DeployBot/src/slack"
+	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,6 +37,11 @@ func main() {
 	// General Health checking handlers
 	http.HandleFunc("/", okHandler)
 	http.HandleFunc("/healthz", okHandler)
+
+	c := cron.New()
+	c.AddFunc("@every 5m", history.BackupState)
+	c.Start()
+	defer c.Stop()
 
 	log.Infof("starting HTTP server on %s:%s", serverURL, port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

@@ -17,11 +17,13 @@ import (
 // All the deploy and stop requests are logged in historyFile
 // templateFile is html template for viewing running services
 const (
-	templateFile = "status_template.html"
+	templateFile    = "status_template.html"
+	actionsInMemory = 10
 )
 
 var (
 	historyFile string
+	stateFile   string
 	// serverURL is the URL of the server
 	serverURL string
 
@@ -146,6 +148,11 @@ var mux sync.Mutex
 func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
 	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/history.json")
+	stateFile = helper.Env("STATE_FILE", "/etc/nginx/state.json")
+
+	if err := initState(); err != nil {
+		log.Fatalf("cannot read state from %s - %v", stateFile, err)
+	}
 
 	var err error
 	cfg := zap.Config{
