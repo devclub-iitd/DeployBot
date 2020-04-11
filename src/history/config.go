@@ -52,7 +52,7 @@ func NewAction(action string, data map[string]interface{}) *ActionInstance {
 		Timestamp: time.Now(),
 		Action:    action,
 		RepoURL:   data["git_repo"].(string),
-		User:      "xxx",
+		User:      data["user"].(string),
 	}
 	if val, ok := data["subdomain"]; ok {
 		a.Subdomain = val.(string)

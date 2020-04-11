@@ -149,12 +149,14 @@ func ParseAction(r *http.Request) (map[string]interface{}, int, error) {
 	var formPayload interface{}
 	json.Unmarshal([]byte(r.Form["payload"][0]), &formPayload)
 	formPayloadMap := formPayload.(map[string]interface{})
+    user := formPayloadMap["user"].(map[string]string)["name"]
 	submissionDataMap := formPayloadMap["submission"].(map[string]interface{})
+    submissionDataMap["user"] = user
 	callbackID := formPayloadMap["callback_id"].(string)
 	log.Infof("action requested with github repo %s with callback_id %s", submissionDataMap["git_repo"].(string), callbackID)
 	switch {
 	case strings.Contains(callbackID, "deploy"):
-		return map[string]interface{}{"action": "deploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
+        return map[string]interface{}{"action": "deploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
 	case strings.Contains(callbackID, "stop"):
 		return map[string]interface{}{"action": "stop", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
 	case strings.Contains(callbackID, "logs"):
