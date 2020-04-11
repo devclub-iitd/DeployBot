@@ -40,6 +40,7 @@ func main() {
 
 	c := cron.New()
 	c.AddFunc("@every 5m", history.BackupState)
+	c.AddFunc("@every 20m", options.UpdateRepos)
 	c.Start()
 	defer c.Stop()
 

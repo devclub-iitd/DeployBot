@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/devclub-iitd/DeployBot/src/git"
@@ -23,7 +24,14 @@ type RepoOption struct {
 var repoOptionsByte []byte
 
 // UpdateRepos updates the internal state of repos. This is called when a new repo is added.
-func UpdateRepos() error {
+func UpdateRepos() {
+	if err := internalUpdateRepos(); err != nil {
+		log.Errorf("cannot update list of repos - %v", err)
+	}
+}
+
+// UpdateRepos updates the internal state of repos. This is called when a new repo is added.
+func internalUpdateRepos() error {
 	repos, err := git.Repos()
 	if err != nil {
 		return fmt.Errorf("cannot get repos from github - %v", err)
@@ -35,6 +43,9 @@ func UpdateRepos() error {
 			URL:  repo.URL,
 		})
 	}
+	sort.Slice(repoOptionsList, func(i, j int) bool {
+		return repoOptionsList[i].Name < repoOptionsList[j].Name
+	})
 	repoOptions := make(map[string]interface{})
 	repoOptions["options"] = repoOptionsList
 	repoOptionsByte, err = json.Marshal(repoOptions)
@@ -106,7 +117,7 @@ func DataOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 // Initialize gets the list of repos and servers. Called from main
 func Initialize() error {
-	if err := UpdateRepos(); err != nil {
+	if err := internalUpdateRepos(); err != nil {
 		return fmt.Errorf("cannot update repos list on initialization - %v", err)
 	}
 	if err := servers(); err != nil {
