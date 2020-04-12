@@ -35,7 +35,7 @@
           <td>{{$value.Server}}</td>
           <td>{{$value.Access}}</td>
           <td>{{$value.Health}}</td>
-          <td>{{$value.Timestamp}}</td>
+          <td>{{$value.Timestamp.Format "Mon Jan _2 15:04:05 2006"}}</td>
           <td><a href="/history/{{$value.Subdomain}}" target="_blank">Get History</a></td>
         </tr>
       {{end}}
