@@ -566,10 +566,12 @@ nginxEntry() {
   if [ "$3" = "internal" ]; then
     export allowed="allow 10.0.0.0/8;"
     export allowed2="allow 103.27.8.0/24;"
+    export allowed3="allow 172.0.0.0/8;"
     export denied="deny all;"
   else
     export allowed="allow all;"
     export allowed2=""
+    export allowed3=""
     export denied=""
   fi
 

@@ -23,6 +23,7 @@ func init() {
 	formatter := new(prefixed.TextFormatter)
 	formatter.DisableColors = true
 	formatter.FullTimestamp = true
+	formatter.ForceFormatting = true
 	formatter.TimestampFormat = history.TimeFormatString
 
 	log.SetFormatter(formatter)

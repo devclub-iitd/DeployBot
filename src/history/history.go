@@ -84,6 +84,7 @@ func StoreHealth(hc *HealthCheck) {
 		s.HealthChecks = s.HealthChecks[len(s.HealthChecks)-healthChecksInMemory:]
 	}
 	s.Current.Timestamp = time.Now()
+	s.Current.Code = hc.Code
 	if hc.Code == 200 {
 		s.Current.Health = hc.Response
 	} else {

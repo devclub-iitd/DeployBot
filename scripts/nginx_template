@@ -24,6 +24,7 @@ server
 
 		${allowed}
 		${allowed2}
+		${allowed3}
 		${denied}
     
     }

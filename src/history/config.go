@@ -145,6 +145,7 @@ type State struct {
 	Access    string    `json:"access"`
 	Server    string    `json:"server"`
 	Health    string    `json:"health"`
+	Code      int       `json:"health_code"`
 }
 
 // Service stores the history and current state of a service
