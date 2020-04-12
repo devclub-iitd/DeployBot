@@ -6,23 +6,40 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   </head>
   <body>
-    <h3>Running services</h3>
-    <table class="table">
-      <tr>
-        <th>Service</th>
-        <th>Subdomain</th>
-        <th>Server</th>
-        <th>Access</th>
-      </tr>
-      {{ range $key, $value := .}}
-        {{if eq $value.Current.Status "running"}}
+    <h3>Devclub Services</h3>
+    <table class="table table-bordered">
+      <thead class="thead-dark">
         <tr>
-          <td>{{$key}}</td>
-          <td>{{$value.Current.Subdomain}}</td>
-          <td>{{$value.Current.Server}}</td>
-          <td>{{$value.Current.Access}}</td>
+          <th scope="col">Service</th>
+          <th scope="col">State</th>
+          <th scope="col">Subdomain</th>
+          <th scope="col">Server</th>
+          <th scope="col">Access</th>
+          <th scope="col">Healthy?</th>
+          <th scope="col">Timestamp</th>
+          <th scope="col">History</th>
         </tr>
+      </thead>
+
+      {{ range $key, $value := .}}
+        {{if eq $value.Status "running"}}
+          {{if eq $value.Code 200}}
+            <tr class="table-success">
+          {{else}}
+            <tr class="table-danger">
+          {{end}}
+        {{else}}
+        <tr class="table-secondary">
         {{end}}
+          <td>{{$key}}</td>
+          <td>{{$value.Status}}</td>
+          <td>{{$value.Subdomain}}</td>
+          <td>{{$value.Server}}</td>
+          <td>{{$value.Access}}</td>
+          <td>{{$value.Health}}</td>
+          <td>{{$value.Timestamp.Format "Mon Jan _2 15:04:05 2006"}}</td>
+          <td><a href="/history/{{$value.Subdomain}}" target="_blank">Get History</a></td>
+        </tr>
       {{end}}
     </table>
   </body>

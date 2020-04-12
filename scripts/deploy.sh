@@ -502,10 +502,10 @@ pullImages() {
 pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  services=$(${__build_arg} ${__compose_command} config --services)
+  services=$(VOLUMES=${__build_arg} ${__compose_command} config --services)
 
   local images=$(echo "$services" | while read service; do
-    ${__build_arg} ${__compose_comand} config | yq -r .services."$service".image;
+    VOLUMES=${__build_arg} ${__compose_command} config | yq -r .services."$service".image;
     done)
 
   echo "${images}" | while read line; do
@@ -517,7 +517,7 @@ pushImages() {
       tag=""
     fi
 
-    if [ $org = "devclubiitd" ]; then
+    if [ "${org}" = "devclubiitd" ]; then
       docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKER_PASSWORD}
       VOLUMES=${__push_arg} ${__compose_command} push
       docker logout
@@ -566,10 +566,12 @@ nginxEntry() {
   if [ "$3" = "internal" ]; then
     export allowed="allow 10.0.0.0/8;"
     export allowed2="allow 103.27.8.0/24;"
+    export allowed3="allow 172.0.0.0/8;"
     export denied="deny all;"
   else
     export allowed="allow all;"
     export allowed2=""
+    export allowed3=""
     export denied=""
   fi
 

@@ -4,9 +4,11 @@ services:
     build: ./
     ports:
      - "7777:7777"
-    image: "devclubiitd/deploy:${TAG:-v1.0}"
+    image: "devclubiitd/deploy:${TAG:-v2.0}"
     env_file:
       - ./.env
+    environment:
+      - TZ=Asia/Kolkata
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7777"]
       interval: 1m30s

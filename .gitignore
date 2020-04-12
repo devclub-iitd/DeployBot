@@ -4,3 +4,4 @@ DeployBot
 env.sh
 .gitsecret/*
 .gitsecret/keys/random_seed
+.state.json
