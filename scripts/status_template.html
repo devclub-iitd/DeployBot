@@ -15,6 +15,7 @@
         <th>Access</th>
         <th>Healthy?</th>
         <th>Timestamp</th>
+        <th>History</th>
       </tr>
       {{ range $key, $value := .}}
         {{if eq $value.Status "running"}}
@@ -25,6 +26,7 @@
           <td>{{$value.Access}}</td>
           <td>{{$value.Healthy}}</td>
           <td>{{$value.Timestamp}}</td>
+          <td><a href= /history/{{$value.Subdomain}}">Get History</a></td>
         </tr>
         {{end}}
       {{end}}

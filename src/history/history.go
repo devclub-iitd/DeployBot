@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
@@ -61,9 +62,10 @@ func StoreAction(a *ActionInstance) {
 	if _, ok := history[a.RepoURL]; !ok {
 		history[a.RepoURL] = NewService()
 	}
-	history[a.RepoURL].Actions = append(history[a.RepoURL].Actions, a)
-	if len(history[a.RepoURL].Actions) > actionsInMemory {
-		history[a.RepoURL].Actions = history[a.RepoURL].Actions[len(history[a.RepoURL].Actions)-actionsInMemory:]
+	s := history[a.RepoURL]
+	s.Actions = append(s.Actions, a)
+	if len(s.Actions) > actionsInMemory {
+		s.Actions = s.Actions[len(s.Actions)-actionsInMemory:]
 	}
 	go writeAction(a)
 }
@@ -112,9 +114,34 @@ func SetState(repoURL string, cur State) {
 	go BackupState()
 }
 
-// Handler handles the /history endpoint, where it dumps the whole action history
+func serviceBytes(subdomain string) []byte {
+	mux.Lock()
+	defer mux.Unlock()
+	for _, v := range history {
+		if v.Current.Subdomain == subdomain {
+			bytes, err := json.MarshalIndent(v, "", "  ")
+			if err != nil {
+				log.Errorf("cannot marshal state of the current service - %v", err)
+				return nil
+			}
+			return bytes
+		}
+	}
+	return nil
+}
+
+// Handler handles the /history/:subdomain endpoint, where it dumps the whole action history
 func Handler(w http.ResponseWriter, r *http.Request) {
-	bytes, _ := ioutil.ReadFile(historyFile)
+	p := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	var bytes []byte
+	if len(p) < 2 {
+		bytes, _ = ioutil.ReadFile(historyFile)
+	} else if len(p) == 2 {
+		bytes = serviceBytes(p[1])
+	} else {
+		w.WriteHeader(400)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)
 }

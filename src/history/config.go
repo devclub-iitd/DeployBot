@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -12,14 +13,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // All the deploy and stop requests are logged in historyFile
 // templateFile is html template for viewing running services
 const (
-	templateFile         = "../scripts/status_template.html"
-	actionsInMemory      = 10
-	healthChecksInMemory = 20
+	templateFile         = "status_template.html"
+	actionsInMemory      = 20
+	healthChecksInMemory = 50
 	TimeFormatString     = "Mon Jan _2 15:04:05 2006"
 )
 
@@ -167,30 +169,37 @@ var mux sync.Mutex
 // newZapLogger returns a sugared logger with output to a given file, in a format we need
 func newZapLogger(outfile string) (*zap.SugaredLogger, error) {
 	var err error
-	cfg := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
-		Development:       false,
-		DisableCaller:     true,
-		DisableStacktrace: true,
-		Encoding:          "json",
-		EncoderConfig: zapcore.EncoderConfig{
-			LineEnding: zapcore.DefaultLineEnding,
-		},
-		OutputPaths:      []string{outfile},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-	logger, err := cfg.Build()
+	w := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   outfile,
+		MaxSize:    10, // megabytes
+		MaxBackups: 30,
+		MaxAge:     60, // days
+	})
+	esink, _, err := zap.Open("stderr")
 	if err != nil {
 		return nil, err
 	}
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zapcore.EncoderConfig{
+			LineEnding: zapcore.DefaultLineEnding,
+		}),
+		w,
+		zap.InfoLevel,
+	)
+
+	logger := zap.New(core, zap.ErrorOutput(esink))
 	return logger.Sugar(), nil
 }
 
 func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
-	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/history.json")
-	healthCheckFile = helper.Env("HEALTH_CHECK_FILE", "/etc/nginx/health.json")
-	stateFile = helper.Env("STATE_FILE", "/etc/nginx/state.json")
+	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/logs/history.json")
+	healthCheckFile = helper.Env("HEALTH_CHECK_FILE", "/etc/nginx/logs/health.json")
+	stateFile = helper.Env("STATE_FILE", "/etc/nginx/logs/state.json")
+
+	helper.CreateDirIfNotExist(path.Dir(historyFile))
+	helper.CreateDirIfNotExist(path.Dir(healthCheckFile))
+	helper.CreateDirIfNotExist(path.Dir(stateFile))
 
 	if err := initState(); err != nil {
 		log.Fatalf("cannot read state from %s - %v", stateFile, err)
