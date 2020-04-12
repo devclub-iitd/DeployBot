@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
+	"github.com/devclub-iitd/DeployBot/src/history"
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
@@ -22,7 +23,7 @@ func init() {
 	formatter := new(prefixed.TextFormatter)
 	formatter.DisableColors = true
 	formatter.FullTimestamp = true
-	formatter.TimestampFormat = "Mon Jan _2 15:04:05 2006"
+	formatter.TimestampFormat = history.TimeFormatString
 
 	log.SetFormatter(formatter)
 

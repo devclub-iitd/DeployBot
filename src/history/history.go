@@ -45,8 +45,13 @@ func BackupState() {
 }
 
 func writeAction(a *ActionInstance) {
-	sugar.Infow("", a.Fields()...)
-	sugar.Sync()
+	historyLogger.Infow("", a.Fields()...)
+	historyLogger.Sync()
+}
+
+func writeHealth(hc *HealthCheck) {
+	healthLogger.Infow("", hc.Fields()...)
+	healthLogger.Sync()
 }
 
 // StoreAction stores an action entry for an action taken on a service
@@ -61,6 +66,28 @@ func StoreAction(a *ActionInstance) {
 		history[a.RepoURL].Actions = history[a.RepoURL].Actions[len(history[a.RepoURL].Actions)-actionsInMemory:]
 	}
 	go writeAction(a)
+}
+
+// StoreHealth stores an health check entry on a service
+func StoreHealth(hc *HealthCheck) {
+	mux.Lock()
+	defer mux.Unlock()
+	// This should never happen, but we still check it
+	if _, ok := history[hc.RepoURL]; !ok {
+		history[hc.RepoURL] = NewService()
+	}
+	s := history[hc.RepoURL]
+	s.HealthChecks = append(s.HealthChecks, hc)
+	if len(s.HealthChecks) > healthChecksInMemory {
+		s.HealthChecks = s.HealthChecks[len(s.HealthChecks)-healthChecksInMemory:]
+	}
+	s.Current.Timestamp = time.Now()
+	if hc.Code == 200 {
+		s.Current.Health = hc.Response
+	} else {
+		s.Current.Health = fmt.Sprintf("Not healthy - code %d", hc.Code)
+	}
+	go writeHealth(hc)
 }
 
 // GetState returns the current state of the service
@@ -101,4 +128,15 @@ func StatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mux.Unlock()
 	statusTemplate.Execute(w, historyClone)
+}
+
+// Services returns the current status of all the services in the history map
+func Services() map[string]State {
+	historyClone := make(map[string]State)
+	mux.Lock()
+	for k, v := range history {
+		historyClone[k] = *(v.Current)
+	}
+	mux.Unlock()
+	return historyClone
 }

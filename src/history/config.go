@@ -17,20 +17,25 @@ import (
 // All the deploy and stop requests are logged in historyFile
 // templateFile is html template for viewing running services
 const (
-	templateFile    = "status_template.html"
-	actionsInMemory = 10
+	templateFile         = "../scripts/status_template.html"
+	actionsInMemory      = 10
+	healthChecksInMemory = 20
+	TimeFormatString     = "Mon Jan _2 15:04:05 2006"
 )
 
 var (
-	historyFile string
-	stateFile   string
+	historyFile     string
+	healthCheckFile string
+	stateFile       string
 	// serverURL is the URL of the server
 	serverURL string
 
 	statusTemplate *template.Template
 
-	// sugar is the zap logger that is used to log actions in a structured log format
-	sugar *zap.SugaredLogger
+	// historyLogger is the zap logger that is used to log actions in a structured log format
+	historyLogger *zap.SugaredLogger
+	// healthLogger is the zap logger that is used to log actions in a structured log format
+	healthLogger *zap.SugaredLogger
 )
 
 // ActionInstance type stores one log entry for a deploy or stop request
@@ -69,7 +74,7 @@ func NewAction(action string, data map[string]interface{}) *ActionInstance {
 func (a *ActionInstance) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("[")
-	buffer.WriteString(a.Timestamp.Format(time.RFC1123))
+	buffer.WriteString(a.Timestamp.Format(TimeFormatString))
 	buffer.WriteString("] Action ")
 	switch a.Action {
 	case "deploy":
@@ -92,7 +97,7 @@ func (a *ActionInstance) String() string {
 // Fields returns a slice of zap fields to use in the sugar logger
 func (a *ActionInstance) Fields() []interface{} {
 	fields := []interface{}{
-		zap.Time("timestamp", a.Timestamp),
+		zap.String("timestamp", a.Timestamp.Format(TimeFormatString)),
 		zap.String("repo_url", a.RepoURL),
 		zap.String("action", a.Action),
 		zap.String("user", a.User),
@@ -112,8 +117,22 @@ func (a *ActionInstance) Fields() []interface{} {
 // HealthCheck type stores the result of a healthcheck
 type HealthCheck struct {
 	Timestamp time.Time `json:"timestamp"`
+	RepoURL   string    `json:"repo_url"`
+	QueryURL  string    `json:"query_url"`
 	Code      int       `json:"code"`
-	Response  string    `json:"response"`
+	// Response will also be the error string if the code is non-2xx or there is a HTTP protocol error
+	Response string `json:"response"`
+}
+
+// Fields returns a slice of zap fields to use in the sugar logger
+func (hc *HealthCheck) Fields() []interface{} {
+	return []interface{}{
+		zap.String("timestamp", hc.Timestamp.Format(TimeFormatString)),
+		zap.String("repo_url", hc.RepoURL),
+		zap.String("query_url", hc.QueryURL),
+		zap.Int("code", hc.Code),
+		zap.String("response", hc.Response),
+	}
 }
 
 // State stores the current state of service
@@ -123,13 +142,13 @@ type State struct {
 	Subdomain string    `json:"subdomain"`
 	Access    string    `json:"access"`
 	Server    string    `json:"server"`
-	Healthy   string    `json:"healthy"`
+	Health    string    `json:"health"`
 }
 
 // Service stores the history and current state of a service
 type Service struct {
 	Actions      []*ActionInstance `json:"actions"`
-	HealthChecks []*HealthCheck    `json:"healths"`
+	HealthChecks []*HealthCheck    `json:"health_checks"`
 	Current      *State            `json:"current"`
 }
 
@@ -145,15 +164,8 @@ func NewService() *Service {
 var history = make(map[string]*Service)
 var mux sync.Mutex
 
-func init() {
-	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
-	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/history.json")
-	stateFile = helper.Env("STATE_FILE", "/etc/nginx/state.json")
-
-	if err := initState(); err != nil {
-		log.Fatalf("cannot read state from %s - %v", stateFile, err)
-	}
-
+// newZapLogger returns a sugared logger with output to a given file, in a format we need
+func newZapLogger(outfile string) (*zap.SugaredLogger, error) {
 	var err error
 	cfg := zap.Config{
 		Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
@@ -164,16 +176,38 @@ func init() {
 		EncoderConfig: zapcore.EncoderConfig{
 			LineEnding: zapcore.DefaultLineEnding,
 		},
-		OutputPaths:      []string{historyFile},
+		OutputPaths:      []string{outfile},
 		ErrorOutputPaths: []string{"stderr"},
 	}
 	logger, err := cfg.Build()
 	if err != nil {
-		log.Fatalf("cannot initiazlie zap logger to log history actions - %v", err)
+		return nil, err
 	}
-	sugar = logger.Sugar()
-	defer sugar.Sync()
+	return logger.Sugar(), nil
+}
+
+func init() {
+	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
+	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/history.json")
+	healthCheckFile = helper.Env("HEALTH_CHECK_FILE", "/etc/nginx/health.json")
+	stateFile = helper.Env("STATE_FILE", "/etc/nginx/state.json")
+
+	if err := initState(); err != nil {
+		log.Fatalf("cannot read state from %s - %v", stateFile, err)
+	}
+
+	var err error
+	if historyLogger, err = newZapLogger(historyFile); err != nil {
+		log.Fatalf("cannot create a new zap sugared logger for history actions - %v", err)
+	}
+	defer historyLogger.Sync()
 	log.Info("history actions logger construction succeeded")
+
+	if healthLogger, err = newZapLogger(healthCheckFile); err != nil {
+		log.Fatalf("cannot create a new zap sugared logger for health checks- %v", err)
+	}
+	defer healthLogger.Sync()
+	log.Info("health check logger construction succeeded")
 
 	statusTemplate, err = template.ParseFiles(templateFile)
 	if err != nil {

@@ -22,13 +22,16 @@ const (
 
 var (
 	// serverURL is the URL of the server
-	serverURL string
+	serverURL  string
+	baseDomain string
 	// LogDir is the place where all the logs are stored
 	logDir string
 )
 
 func init() {
-	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
+	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.in")
+	baseDomain = helper.Env("BASE_DOMAIN", "devclub.in")
+
 	logDir = helper.Env("LOG_DIR", "/var/logs/deploybot/")
 
 	log.Info("Setting Up Log directory")
