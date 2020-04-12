@@ -33,7 +33,7 @@ func HealthCheck() {
 }
 
 func updateHealth(repoURL string, st history.State, t *throttler.Throttler) {
-	url := fmt.Sprintf("https://%s.%s/healthz", st.Subdomain, baseDomain)
+	url := fmt.Sprintf("https://%s.%s/healthz", st.Subdomain, globalDomain)
 	hc := &history.HealthCheck{
 		Timestamp: time.Now(),
 		RepoURL:   repoURL,
