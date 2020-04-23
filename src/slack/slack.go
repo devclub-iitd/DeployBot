@@ -128,6 +128,16 @@ func StopCommandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// RedeployCommandHandler handles /redeploy commands on slack
+func RedeployCommandHandler(w http.ResponseWriter, r *http.Request) {
+	log.Infof("/redeploy command called on slack")
+	status, err := dialogHandler(r, redeployDialog, &helper.RedeployCount)
+	w.WriteHeader(status)
+	if err != nil {
+		log.Errorf("error handling /redeploy command - %v", err)
+	}
+}
+
 // LogsCommandHandler handles /logs commands on slack
 func LogsCommandHandler(w http.ResponseWriter, r *http.Request) {
 	log.Infof("/logs command called on slack")
@@ -155,6 +165,8 @@ func ParseAction(r *http.Request) (map[string]interface{}, int, error) {
 	callbackID := formPayloadMap["callback_id"].(string)
 	log.Infof("action requested with github repo %s with callback_id %s", submissionDataMap["git_repo"].(string), callbackID)
 	switch {
+	case strings.Contains(callbackID, "redeploy"):
+		return map[string]interface{}{"action": "redeploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
 	case strings.Contains(callbackID, "deploy"):
 		return map[string]interface{}{"action": "deploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
 	case strings.Contains(callbackID, "stop"):

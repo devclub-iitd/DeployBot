@@ -118,6 +118,31 @@ var stopDialog = dialog{
   }`),
 }
 
+// redeployDialog is the format of the menu that will displayed for redeploying services
+var redeployDialog = dialog{
+	name: "redeploy",
+	content: []byte(`{
+    "callback_id": "redeploy-xxxx",
+    "title": "Redeploy service",
+    "submit_label": "Redeploy",
+    "elements": [
+      {
+        "type": "select",
+        "label": "Github Repository",
+        "name" : "git_repo",
+        "data_source": "external"
+      },
+      {
+        "label": "APP Channel",
+        "name": "channel",
+        "type": "select",
+        "data_source": "channels",
+        "value": "CGN56SGDS"
+      }
+    ]
+  }`),
+}
+
 // logsDialog is the format of the menu that will displayed for fetching logs
 var logsDialog = dialog{
 	name: "logs",
