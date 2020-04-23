@@ -502,11 +502,8 @@ pullImages() {
 pushImages() {
   local repo_path=${1}
   pushd "${repo_path}"
-  services=$(VOLUMES=${__build_arg} ${__compose_command} config --services)
-
-  local images=$(echo "$services" | while read service; do
-    VOLUMES=${__build_arg} ${__compose_command} config | yq -r .services."$service".image;
-    done)
+  local images=$(VOLUMES=${__build_arg} ${__compose_command} config | \
+    yq -r '.services | .[].image')
 
   echo "${images}" | while read line; do
     repo=$(echo "$line" | cut -d":" -f1)
@@ -595,11 +592,19 @@ nginxEntry() {
 ## @param $1 name of repo
 saveCompose() {
   local repo_name=$1
+  local repo_path=$2
   local compose_dir=${__nginx_dir}/composes/${repo_name}
+
+  pushd "${repo_path}"
+  local context_dirs=$(VOLUMES=${__build_arg} ${__compose_command} config | \
+    yq -r '.services | .[].build.context//empty' | \
+    xargs realpath --relative-to="$PWD")
+  popd
   
   mkdir -p ${compose_dir}
   pushd ${compose_dir}
-  cp ${__repo_dir}/${__compose_file} ${__repo_dir}/.env .
+  cp ${repo_path}/${__compose_file} ${repo_path}/.env .
+  echo "${context_dirs}" | xargs mkdir -p
   popd
 }
 
@@ -628,5 +633,5 @@ buildImage "${__repo_dir}"
 pushImages "${__repo_dir}"
 deployImage "${__repo_dir}"
 nginxEntry ${arg_s} ${__machine_name} ${__service_access}
-saveCompose ${__repo_name}
+saveCompose "${__repo_name}" "${__repo_dir}"
 cleanup "${__temp_dir}"
