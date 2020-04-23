@@ -16,6 +16,7 @@ var (
 	DeployCount int32 = 0
 	StopCount   int32 = 0
 	LogsCount   int32 = 0
+	RedeployCount int32 = 0
 )
 
 // Env returns the value of the environment variable if present, or returns the fallback value

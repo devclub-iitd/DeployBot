@@ -25,6 +25,8 @@ func ActionHandler(w http.ResponseWriter, r *http.Request) {
 		go deploy(data["callback_id"].(string), data["data"].(map[string]interface{}))
 	case "stop":
 		go stop(data["callback_id"].(string), data["data"].(map[string]interface{}))
+	case "redeploy":
+		go redeploy(data["callback_id"].(string), data["data"].(map[string]interface{}))
 	case "logs":
 		go logs(data["callback_id"].(string), data["data"].(map[string]interface{}))
 	}

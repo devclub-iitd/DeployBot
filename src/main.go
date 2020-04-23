@@ -22,6 +22,7 @@ func main() {
 	// Slack related HTTP handlers
 	http.HandleFunc("/slack/commands/deploy/", slack.DeployCommandHandler)
 	http.HandleFunc("/slack/commands/stop/", slack.StopCommandHandler)
+	http.HandleFunc("/slack/commands/redeploy/", slack.RedeployCommandHandler)
 	http.HandleFunc("/slack/commands/logs/", slack.LogsCommandHandler)
 	http.HandleFunc("/slack/interactive/request/", controllers.ActionHandler)
 	http.HandleFunc("/slack/interactive/data-options/", options.DataOptionsHandler)
