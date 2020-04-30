@@ -69,7 +69,11 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 		state.Access = a.Access
 		state.Server = a.Server
 		state.Status = "deploying"
-		history.SetState(a.RepoURL, state)
+		if err1 := history.SetState(a.RepoURL, state); err1 != nil {
+			log.Infof("setting state to deploying failed - %v", err1)
+			output = []byte("InternalDeployError: cannot set state to deploying - " + err1.Error())
+			return output, err1
+		}
 		output, err = exec.Command(deployScriptName, "-n", "-u", a.RepoURL, "-b", branch, "-m", a.Server, "-s", a.Subdomain, "-a", a.Access).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"
@@ -78,6 +82,7 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 			state.Status = "running"
 			history.SetState(a.RepoURL, state)
 		}
+
 	}
 	return output, err
 }
