@@ -133,6 +133,35 @@ var redeployDialog = dialog{
         "data_source": "external"
       },
       {
+        "type": "select",
+        "label": "Server Name",
+        "name": "server_name",
+        "data_source": "external",
+        "optional": true
+      },
+      {
+        "label": "Subdomain",
+        "name": "subdomain",
+        "type": "text",
+        "optional": true
+      },
+      {
+        "label": "Access",
+        "name": "access",
+        "type": "select",
+        "optional": true
+        "options": [
+              {
+                  "label": "Internal",
+                  "value": "internal"
+              },
+              {
+                  "label": "External",
+                  "value": "external"
+              }
+        ]
+      },
+      {
         "label": "APP Channel",
         "name": "channel",
         "type": "select",
