@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"errors"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
@@ -104,15 +105,21 @@ func GetState(repoURL string) State {
 }
 
 // SetState sets the current state of service
-func SetState(repoURL string, cur State) {
+func SetState(repoURL string, cur State) error {
 	mux.Lock()
 	defer mux.Unlock()
 	if _, ok := history[repoURL]; !ok {
 		history[repoURL] = NewService()
 	}
 	cur.Timestamp = time.Now()
-	history[repoURL].Current = &cur
+	var err error
+	if cur.Status != "deploying" || checkSubdomain(cur.Subdomain) {
+		history[repoURL].Current = &cur
+	} else {
+		err = errors.New("subdomain in use")
+	}
 	go BackupState()
+	return err
 }
 
 func serviceBytes(subdomain string) []byte {
@@ -167,4 +174,14 @@ func Services() map[string]State {
 	}
 	mux.Unlock()
 	return historyClone
+}
+
+// checkSubdomain checks if the subdomain is in use
+func checkSubdomain(subdomain string) bool {
+	for _, v := range history {
+		if v.Current.Status != "stopped" && v.Current.Subdomain == subdomain {
+			return false
+		}
+	}
+	return true
 }
