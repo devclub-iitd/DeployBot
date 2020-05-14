@@ -2,12 +2,12 @@ package history
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
-	"errors"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
@@ -105,7 +105,9 @@ func GetState(repoURL string) State {
 }
 
 // SetState sets the current state of service
-func SetState(repoURL string, cur State) error {
+// Compares the current state of repoURL to old, and if it matches, sets
+// it to cur
+func SetState(repoURL string, old State, cur State) error {
 	mux.Lock()
 	defer mux.Unlock()
 	if _, ok := history[repoURL]; !ok {
@@ -114,7 +116,13 @@ func SetState(repoURL string, cur State) error {
 	cur.Timestamp = time.Now()
 	var err error
 	if cur.Status != "deploying" || checkSubdomain(cur.Subdomain) {
-		history[repoURL].Current = &cur
+		if *history[repoURL].Current == old {
+			history[repoURL].Current = &cur
+		} else {
+			err = fmt.Errorf("current state different. expected: %v, current: %v",
+				old,
+				*history[repoURL].Current)
+		}
 	} else {
 		err = errors.New("subdomain in use")
 	}

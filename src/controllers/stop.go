@@ -41,6 +41,7 @@ func stop(callbackID string, data map[string]interface{}) {
 // internalStop actually runs the script to stop the given app.
 func internalStop(a *history.ActionInstance) ([]byte, error) {
 	state := history.GetState(a.RepoURL)
+	oldState := state
 
 	var output []byte
 	var err error
@@ -57,13 +58,13 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 	case "running":
 		log.Infof("calling %s to stop service(%s)", stopScriptName, a.RepoURL)
 		state.Status = "stopping"
-		history.SetState(a.RepoURL, state)
+		history.SetState(a.RepoURL, oldState, state)
 		if output, err = exec.Command(stopScriptName, state.Subdomain, a.RepoURL, state.Server).CombinedOutput(); err != nil {
 			state.Status = "running"
-			history.SetState(a.RepoURL, state)
+			history.SetState(a.RepoURL, oldState, state)
 		} else {
 			state.Status = "stopped"
-			history.SetState(a.RepoURL, state)
+			history.SetState(a.RepoURL, oldState, state)
 		}
 	default:
 		log.Infof("service(%s) is already stopped", a.RepoURL)
