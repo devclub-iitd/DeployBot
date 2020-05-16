@@ -2,6 +2,7 @@ package history
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"html/template"
 	"path"
@@ -191,6 +192,7 @@ type Service struct {
 	Actions      []*ActionInstance `json:"actions"`
 	HealthChecks []*HealthCheck    `json:"health_checks"`
 	Current      *State            `json:"current"`
+	StateTag     string            `json:"state_tag"`
 }
 
 // NewService returns a blank service, with the state as stopped
@@ -202,8 +204,16 @@ func NewService() *Service {
 	}
 }
 
-var history = make(map[string]*Service)
-var mux sync.Mutex
+var (
+	history = make(map[string]*Service)
+	mux     sync.Mutex
+	tagHash = sha256.Sum256
+)
+
+func makeTag(repoURL string, state State) string {
+	data := []byte(fmt.Sprintf("%v-%v-%v-%v-%v", repoURL, state.Status, state.Subdomain, state.Access, state.Server))
+	return fmt.Sprintf("%x", tagHash(data))
+}
 
 // newZapLogger returns a sugared logger with output to a given file, in a format we need
 func newZapLogger(outfile string) (*zap.SugaredLogger, error) {

@@ -6,7 +6,7 @@ import (
 
 func redeploy(callbackID string, data map[string]interface{}) {
 	stop(callbackID, data)
-	state := history.GetState(data["git_repo"].(string))
+	state, _ := history.GetState(data["git_repo"].(string))
 	if state.Status == "stopped" {
 		data["subdomain"] = state.Subdomain
 		data["access"] = state.Access
