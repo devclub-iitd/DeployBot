@@ -48,7 +48,7 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map
-	state := history.GetState(a.RepoURL)
+	state, tag := history.GetState(a.RepoURL)
 
 	var output []byte
 	var err error
@@ -72,7 +72,8 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 		state.Access = a.Access
 		state.Server = a.Server
 		state.Status = "deploying"
-		if err1 := history.SetState(a.RepoURL, state); err1 != nil {
+		tag, err1 := history.SetState(a.RepoURL, tag, state)
+		if err1 != nil {
 			log.Infof("setting state to deploying failed - %v", err1)
 			output = []byte("InternalDeployError: cannot set state to deploying - " + err1.Error())
 			return output, err1
@@ -80,12 +81,17 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 		output, err = exec.Command(deployScriptName, "-n", "-u", a.RepoURL, "-b", branch, "-m", a.Server, "-s", a.Subdomain, "-a", a.Access).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"
-			history.SetState(a.RepoURL, state)
 		} else {
 			state.Status = "running"
-			history.SetState(a.RepoURL, state)
 		}
 
+		// There should be no error here, ever. Checking it to make sure
+		// TODO: On error, set state to an "error" state which only stop should be able to modify
+		tag, err1 = history.SetState(a.RepoURL, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(a.RepoURL, tag, state) {
+			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
+		}
+		log.Infof("setting state to %v successful", state.Status)
 	}
 	return output, err
 }

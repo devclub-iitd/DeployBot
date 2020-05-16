@@ -2,12 +2,12 @@ package history
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
-	"errors"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
@@ -28,6 +28,15 @@ func initState() error {
 	if err := json.Unmarshal(bytes, &history); err != nil {
 		return fmt.Errorf("cannot unmarshal json to history - %v", err)
 	}
+
+	for repoURL, service := range history {
+		actualTag := makeTag(repoURL, *service.Current)
+		if service.StateTag != actualTag {
+			log.Warnf("State tag for %s in history file is \"%s\", expected \"%s\"", repoURL, service.StateTag, actualTag)
+			service.StateTag = actualTag
+		}
+	}
+
 	return nil
 }
 
@@ -94,32 +103,39 @@ func StoreHealth(hc *HealthCheck) {
 	go writeHealth(hc)
 }
 
-// GetState returns the current state of the service
-func GetState(repoURL string) State {
+// GetState returns the current state of the service and a tag identifying it
+func GetState(repoURL string) (State, string) {
 	mux.Lock()
 	defer mux.Unlock()
 	if _, ok := history[repoURL]; !ok {
 		history[repoURL] = NewService()
 	}
-	return *history[repoURL].Current
+	return *history[repoURL].Current, history[repoURL].StateTag
 }
 
 // SetState sets the current state of service
-func SetState(repoURL string, cur State) error {
+// Compares the current state of repoURL to provided tag, and if it matches,
+// sets it to reqState. Returns a tag for the new state and an error.
+func SetState(repoURL string, tag string, reqState State) (string, error) {
 	mux.Lock()
 	defer mux.Unlock()
 	if _, ok := history[repoURL]; !ok {
 		history[repoURL] = NewService()
 	}
-	cur.Timestamp = time.Now()
+	reqState.Timestamp = time.Now()
 	var err error
-	if cur.Status != "deploying" || checkSubdomain(cur.Subdomain) {
-		history[repoURL].Current = &cur
-	} else {
+	if reqState.Status == "deploying" && checkSubdomain(reqState.Subdomain) {
 		err = errors.New("subdomain in use")
+	} else if history[repoURL].StateTag != tag {
+		err = fmt.Errorf("old tag provided %s, does not match the original tag %s", tag, history[repoURL].StateTag)
+		tag = history[repoURL].StateTag
+	} else {
+		history[repoURL].Current = &reqState
+		tag = makeTag(repoURL, reqState)
+		history[repoURL].StateTag = tag
 	}
 	go BackupState()
-	return err
+	return tag, err
 }
 
 func serviceBytes(subdomain string) []byte {

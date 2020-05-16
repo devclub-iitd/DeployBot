@@ -43,7 +43,7 @@ func stop(callbackID string, data map[string]interface{}) {
 
 // internalStop actually runs the script to stop the given app.
 func internalStop(a *history.ActionInstance) ([]byte, error) {
-	state := history.GetState(a.RepoURL)
+	state, tag := history.GetState(a.RepoURL)
 
 	var output []byte
 	var err error
@@ -60,14 +60,26 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 	case "running":
 		log.Infof("calling %s to stop service(%s)", stopScriptName, a.RepoURL)
 		state.Status = "stopping"
-		history.SetState(a.RepoURL, state)
+		tag, err1 := history.SetState(a.RepoURL, tag, state)
+		if err1 != nil {
+			log.Infof("setting state to stopping failed - %v", err1)
+			output = []byte("InternalStopError: cannot set state to stopping - " + err1.Error())
+			return output, err1
+		}
+
 		if output, err = exec.Command(stopScriptName, state.Subdomain, a.RepoURL, state.Server).CombinedOutput(); err != nil {
 			state.Status = "running"
-			history.SetState(a.RepoURL, state)
 		} else {
 			state.Status = "stopped"
-			history.SetState(a.RepoURL, state)
 		}
+
+		// There should be no error here, ever. Checking it to make sure
+		// TODO: On error, set state to an "error" state which only stop should be able to modify
+		tag, err1 = history.SetState(a.RepoURL, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(a.RepoURL, tag, state) {
+			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
+		}
+		log.Infof("setting state to %v successful", state.Status)
 	default:
 		log.Infof("service(%s) is already stopped", a.RepoURL)
 		output = []byte("Service is already stopped!")
