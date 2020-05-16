@@ -52,3 +52,6 @@ volumes:
           - "in.devclub=configuration volume for deploy bot"
 networks:
   internal:
+    ipam:
+      config:
+      - subnet: 172.16.20.0/24
