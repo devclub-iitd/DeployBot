@@ -31,6 +31,7 @@ var (
 	stateFile       string
 	// serverURL is the URL of the server
 	serverURL string
+	domain    string
 
 	statusTemplate *template.Template
 
@@ -116,6 +117,43 @@ func (a *ActionInstance) Fields() []interface{} {
 	return fields
 }
 
+type EmbedField struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline"`
+}
+
+func (a *ActionInstance) EmbedFields() map[string]interface{} {
+	m := map[string]interface{}{"action": a.Action, "result": a.Result}
+	if a.Result != "" {
+		fields := []interface{}{
+			EmbedField{"Result", a.Result, true},
+			EmbedField{"Repo", a.RepoURL, false},
+			EmbedField{"Logs", fmt.Sprintf("%s/logs/%s", serverURL, a.LogPath), false},
+		}
+		if a.Action == "deploy" && a.Result == "success" {
+			fields = append(fields,
+				EmbedField{"URL", fmt.Sprintf("https://%s.%s", a.Subdomain, domain), false},
+			)
+		}
+		m["fields"] = fields
+		return m
+	}
+	fields := []interface{}{
+		EmbedField{"User", a.User, true},
+		EmbedField{"Repo", a.RepoURL, false},
+	}
+	if a.Action == "deploy" {
+		fields = append(fields,
+			EmbedField{"Subdomain", a.Subdomain, true},
+			EmbedField{"Server", a.Server, true},
+			EmbedField{"Access", a.Access, true},
+		)
+	}
+	m["fields"] = fields
+	return m
+}
+
 // HealthCheck type stores the result of a healthcheck
 type HealthCheck struct {
 	Timestamp time.Time `json:"timestamp"`
@@ -194,6 +232,7 @@ func newZapLogger(outfile string) (*zap.SugaredLogger, error) {
 
 func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
+	domain = helper.Env("DOMAIN", "devclub.iitd.ac.in")
 	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/logs/history.json")
 	healthCheckFile = helper.Env("HEALTH_CHECK_FILE", "/etc/nginx/logs/health.json")
 	stateFile = helper.Env("STATE_FILE", "/etc/nginx/logs/state.json")

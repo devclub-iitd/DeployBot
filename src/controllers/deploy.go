@@ -9,6 +9,7 @@ import (
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/slack"
+	"github.com/devclub-iitd/DeployBot/src/discord"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,6 +21,7 @@ func deploy(callbackID string, data map[string]interface{}) {
 		log.Errorf("cannot post begin deployment chat message - %v", err)
 		return
 	}
+	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
 	log.Infof("beginning %s with callback_id as %s", actionLog, callbackID)
 
 	logPath := fmt.Sprintf("deploy/%s.txt", callbackID)
@@ -38,6 +40,7 @@ func deploy(callbackID string, data map[string]interface{}) {
 		history.StoreAction(actionLog)
 		slack.PostChatMessage(channel, fmt.Sprintf("%s\n", actionLog), nil)
 	}
+	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
 }
 
 // internaldeploy deploys the given app on the server specified.
