@@ -124,7 +124,7 @@ func SetState(repoURL string, tag string, reqState State) (string, error) {
 	}
 	reqState.Timestamp = time.Now()
 	var err error
-	if reqState.Status == "deploying" && checkSubdomain(reqState.Subdomain) {
+	if reqState.Status == "deploying" && !subdomainAvailable(reqState.Subdomain) {
 		err = errors.New("subdomain in use")
 	} else if history[repoURL].StateTag != tag {
 		err = fmt.Errorf("old tag provided %s, does not match the original tag %s", tag, history[repoURL].StateTag)
@@ -192,8 +192,9 @@ func Services() map[string]State {
 	return historyClone
 }
 
-// checkSubdomain checks if the subdomain is in use
-func checkSubdomain(subdomain string) bool {
+// checkSubdomain checks if the subdomain is available
+// returns true if it is else false
+func subdomainAvailable(subdomain string) bool {
 	for _, v := range history {
 		if v.Current.Status != "stopped" && v.Current.Subdomain == subdomain {
 			return false

@@ -4,7 +4,7 @@ services:
     build: ./
     ports:
      - "7777:7777"
-    image: "devclubiitd/deploy:${TAG:-v2.0}"
+    image: "devclubiitd/deploy:${TAG:-v2.1}"
     env_file:
       - ./.env
     environment:
