@@ -41,7 +41,7 @@ get_logs() {
   pushd "${__compose_dir}"/"${repo_name}"
 
   eval "$(docker-machine env ${machine} --shell bash)"
-  VOLUMES="${__push_arg}" ${__compose_command} -f ${__compose_file} logs --tail ${tail}
+  VOLUMES="${__push_arg}" ${__compose_command} -f ${__compose_file} logs --tail ${tail} --no-color
   eval "$(docker-machine env --shell bash -u)"
 
   popd
