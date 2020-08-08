@@ -576,6 +576,7 @@ nginxEntry() {
   export http_upgrade="\$http_upgrade"
   export host="\$host"
   export request_uri="\$request_uri"
+  export proxy_add_x_forwarded_for="\$proxy_add_x_forwarded_for"
   envsubst < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
   ln -s /etc/nginx/sites-available/${subdomain} /etc/nginx/sites-enabled/${subdomain}
 
