@@ -1,15 +1,15 @@
 version: '3.4'
 services:
-  web:
+  example_web:
     build: ./folder
     # build: https://www.github.com/ozym4nd145/TestDocker1.git#:folder
     ports:
      - "5000"
-    image: "devclubiitd/test1:${TAG:-0.6}"
+    image: "${REGISTRY_NAME}devclubiitd/test1:${TAG:-0.6}"
     depends_on:
       - redis
     env_file:
-      - ./test.env
+      - .env
     environment:
       - DEBUG # Take DEBUG variable from environment
     healthcheck:
@@ -39,8 +39,8 @@ services:
     networks:
       - "internal"
       - "reverseproxy"
-  redis:
-    image: "redis:alpine"
+  example_redis:
+    image: "${REGISTRY_NAME}redis:alpine"
     restart: unless-stopped
     networks:
       - "internal"

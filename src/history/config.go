@@ -242,7 +242,7 @@ func newZapLogger(outfile string) (*zap.SugaredLogger, error) {
 
 func init() {
 	serverURL = helper.Env("SERVER_URL", "https://listen.devclub.iitd.ac.in")
-	domain = helper.Env("DOMAIN", "devclub.iitd.ac.in")
+	domain = helper.Env("GLOBAL_DOMAIN", "devclub.iitd.ac.in")
 	historyFile = helper.Env("HISTORY_FILE", "/etc/nginx/logs/history.json")
 	healthCheckFile = helper.Env("HEALTH_CHECK_FILE", "/etc/nginx/logs/health.json")
 	stateFile = helper.Env("STATE_FILE", "/etc/nginx/logs/state.json")

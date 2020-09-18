@@ -31,10 +31,7 @@ These steps will create a volume named `docker_conf` which will contain all the 
 NOTE: You will also have to deploy `ServerConfig` on each server for projects deployed to be accessible. 
 
 # Environment variables
-Environment variables should be present in a `.env` file. These environment variables are required:
-```
-GPGSECRETPASS=<GPG passphrase>
-```
+Required environment variable are listed in `.env.sample` file. All the environment variables should be present in a `.env` file.
 
 # Running
 If initial setup has been done once, then just running `docker-compose up -d` will start the deploybot service. The bot will listen to incoming connections on port `7777` by default.
@@ -43,5 +40,9 @@ If initial setup has been done once, then just running `docker-compose up -d` wi
 - Each project should have a `.env` file for environment variables which should be encrypted using `git-secret` with `devclubiitd` user as collaborator. `devclubiitd`'s public gpg key can be found [here](https://github.com/devclubiitd.gpg)
 - Each project should have `docker-compose.yml` to build their projects.
 - Sample `docker-compose.yml` is given here with name `sample_docker-compose.yml`.
-
-Note: Make sure that you have external `reverseproxy` network in your `docker-compose.yml`. Also, never use bind mounts in your compose file.
+- The service names in `docker-compose.yml` must be of the form `<project name>_<service name>` to avoid any docker container clashes.
+- The image names in `docker-compose.yml` must be preceded by `${REGISTRY_NAME}`
+- The service that will listen for requests must have:
+    - `reverseproxy` network
+    - `VIRTUAL_HOST` environment variable
+Note: Never use bind mounts in your compose file.
