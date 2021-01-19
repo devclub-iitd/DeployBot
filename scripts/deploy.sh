@@ -573,6 +573,7 @@ nginxEntry() {
   fi
 
   ## TODO: Look for a better way to do it
+  export request_method="\$request_method"
   export http_upgrade="\$http_upgrade"
   export host="\$host"
   export request_uri="\$request_uri"
