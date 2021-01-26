@@ -202,8 +202,3 @@ func subdomainAvailable(subdomain string) bool {
 	}
 	return true
 }
-
-// GetHistory - Returns the history instance
-func GetHistory() *map[string]*Service {
-	return &history
-}

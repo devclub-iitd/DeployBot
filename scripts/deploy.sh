@@ -52,7 +52,7 @@ __base="$(basename "${__file}" .sh)"
 # Define the environment variables (and their defaults) that this script depends on
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
-REGEN_NGINX="${REGEN_NGINX:-}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
+REGENERATE_NGINX="${REGENERATE_NGINX:-}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
 
 
 ### Functions
@@ -351,7 +351,7 @@ fi
 
 # regenerate nginx templates mode
 if [[ "${arg_r:?}" = "1" ]]; then
-  REGEN_NGINX=true
+  REGENERATE_NGINX=true
 fi
 
 # no color mode
@@ -635,7 +635,7 @@ if [[ "${arg_s:-}" ]]; then
   populateVirtualHost ${arg_s} ${__machine_name}
 fi
 
-if [ "$REGEN_NGINX" = false ] ; then 
+if [ "$REGENERATE_NGINX" = false ] ; then 
     pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
     analyzeRepository "${__repo_dir}"
     decryptEnv "${__repo_dir}"
