@@ -19,6 +19,12 @@ func main() {
 	}
 	log.Info("initialization of server completed")
 
+	// Regenerate NGINX templates on restart
+	repoURL, err := controllers.NginxRegenerate()
+	if err != nil {
+		log.Errorf("Could not regenerate NGINX template for repo: %s, details: %v", repoURL, err)
+	}
+
 	// Slack related HTTP handlers
 	http.HandleFunc("/slack/commands/deploy/", slack.DeployCommandHandler)
 	http.HandleFunc("/slack/commands/stop/", slack.StopCommandHandler)

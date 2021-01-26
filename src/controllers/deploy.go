@@ -6,10 +6,10 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/devclub-iitd/DeployBot/src/discord"
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/slack"
-	"github.com/devclub-iitd/DeployBot/src/discord"
 	log "github.com/sirupsen/logrus"
 )
 
