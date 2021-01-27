@@ -78,7 +78,9 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 			output = []byte("InternalDeployError: cannot set state to deploying - " + err1.Error())
 			return output, err1
 		}
-		output, err = exec.Command(deployScriptName, GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access)...).CombinedOutput()
+
+		args := GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access)
+		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"
 		} else {
