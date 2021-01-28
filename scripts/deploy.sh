@@ -52,6 +52,7 @@ __base="$(basename "${__file}" .sh)"
 # Define the environment variables (and their defaults) that this script depends on
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+REGENERATE_NGINX="${REGENERATE_NGINX:-}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
 
 
 ### Functions
@@ -144,6 +145,7 @@ function help () {
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
+  -r --regenerate-nginx     Restart deploybot and regenerate nginx entries
 EOF
 
 # shellcheck disable=SC2015
@@ -345,6 +347,11 @@ fi
 # verbose mode
 if [[ "${arg_v:?}" = "1" ]]; then
   set -o verbose
+fi
+
+# regenerate nginx templates mode
+if [[ "${arg_r:?}" = "1" ]]; then
+  REGENERATE_NGINX=true
 fi
 
 # no color mode
@@ -627,13 +634,19 @@ if [[ "${arg_s:-}" ]]; then
   ## If we are giving custom subdomain
   populateVirtualHost ${arg_s} ${__machine_name}
 fi
-pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
-analyzeRepository "${__repo_dir}"
-decryptEnv "${__repo_dir}"
-pullImages "${__repo_dir}"
-buildImage "${__repo_dir}"
-pushImages "${__repo_dir}"
-deployImage "${__repo_dir}"
-nginxEntry ${arg_s} ${__machine_name} ${__service_access}
-saveCompose "${__repo_name}" "${__repo_dir}"
-cleanup "${__temp_dir}"
+
+if [ "$REGENERATE_NGINX" = false ] ; then 
+    pullRepository "${__repo_url}" "${__repo_branch}" "${__repo_dir}"
+    analyzeRepository "${__repo_dir}"
+    decryptEnv "${__repo_dir}"
+    pullImages "${__repo_dir}"
+    buildImage "${__repo_dir}"
+    pushImages "${__repo_dir}"
+    deployImage "${__repo_dir}"
+    nginxEntry ${arg_s} ${__machine_name} ${__service_access}
+    saveCompose "${__repo_name}" "${__repo_dir}"
+    cleanup "${__temp_dir}"
+else
+    nginxEntry ${arg_s} ${__machine_name} ${__service_access}
+fi
+

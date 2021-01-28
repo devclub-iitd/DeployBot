@@ -13,11 +13,19 @@ import (
 )
 
 func main() {
-	log.Info("beginning initialization of server")
-	if err := options.Initialize(); err != nil {
-		log.Fatalf("cannot initialize server - %v", err)
+	log.Info("Initializaing server")
+
+	// Regenerate NGINX templates on restart
+	if repoURL, err := controllers.NginxRegenerate(); err != nil {
+		log.Fatalf("Could not regenerate NGINX template for repo: %s, details: %v", repoURL, err)
 	}
-	log.Info("initialization of server completed")
+
+	// Initialize from options
+	if err := options.Initialize(); err != nil {
+		log.Fatalf("Cannot initialize server - %v", err)
+	}
+
+	log.Info("Initialization of server completed")
 
 	// Slack related HTTP handlers
 	http.HandleFunc("/slack/commands/deploy/", slack.DeployCommandHandler)
