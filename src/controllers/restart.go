@@ -7,10 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// NginxRegenerate - Regenerate nginx entries for all deployed services
+// NginxRegenerate - Regenerate nginx entries for all deployed and running services
 func NginxRegenerate() (string, error) {
 	branch := defaultBranch
 	for repoURL, state := range history.Services() {
+		if state.Status != "running" {
+			continue
+		}
 		args := GetDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access)
 		args = append(args, "-r")
 
