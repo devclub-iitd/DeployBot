@@ -125,19 +125,3 @@ func Initialize() error {
 	}
 	return nil
 }
-
-// CleanupDanglingImages - Cleans up all the dangling images
-func CleanupDanglingImages() {
-	app := "docker"
-	arg0 := "system"
-	arg1 := "prune"
-
-	cmd := exec.Command(app, arg0, arg1)
-	output, err := cmd.Output()
-
-	log.Infof(string(output))
-
-	if err != nil {
-		log.Errorf("Error - %v", err)
-	}
-}

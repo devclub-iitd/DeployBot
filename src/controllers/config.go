@@ -16,8 +16,10 @@ const (
 	// stopScriptName is the name of script used to stop a service
 	stopScriptName = "stop.sh"
 	// logScriptName is the name of script used to get logs of a service
-	logScriptName  = "logs.sh"
-	logsExpiryMins = 10
+	logScriptName = "logs.sh"
+	// cleanupScriptName is the name of script to clean all dangling docker images
+	cleanupScriptName = "cleanup.sh"
+	logsExpiryMins    = 10
 )
 
 var (
