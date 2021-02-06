@@ -52,7 +52,7 @@ __base="$(basename "${__file}" .sh)"
 # Define the environment variables (and their defaults) that this script depends on
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
-REGENERATE_NGINX="${REGENERATE_NGINX:-}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
+REGENERATE_NGINX="${REGENERATE_NGINX:-false}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
 
 
 ### Functions
