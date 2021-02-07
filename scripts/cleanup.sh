@@ -15,7 +15,7 @@ function cleanMachines(){
 
     IFS=', ' read -r -a machines <<< $(docker-machine ls | awk '{print $1}' | tail -n +2 | tr '\n' ', ')
 
-    for machine_name in $machines
+    for machine_name in ${machines[@]}
     do
         cleanImages $machine_name
     done
