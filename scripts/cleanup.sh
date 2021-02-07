@@ -15,23 +15,23 @@ function cleanMachines(){
 
     IFS=', ' read -r -a machines <<< $(docker-machine ls | awk '{print $1}' | tail -n +2 | tr '\n' ', ')
 
-    for machine_name in ${machines[@]}
+    for machineName in ${machines[@]}
     do
-        cleanImages $machine_name
+        cleanImages $machineName
     done
 }
 
 ## @brief docker system prune for given machine 
-## @param $1 machine_name
+## @param $1 machineName
 function cleanImages(){
-    local machine_name=$1;
-    echo "[+] Starting cleanup for machine: $machine_name"
+    local machineName=$1;
+    echo "[+] Starting cleanup for machine: $machineName"
 
-    eval "$(docker-machine env ${machine_name} --shell bash)"
+    eval "$(docker-machine env ${machineName} --shell bash)"
     docker system prune -f
     
     eval "$(docker-machine env --shell bash -u)"
-    echo "[+] Cleanup successful for machine: $machine_name"
+    echo "[+] Cleanup successful for machine: $machineName"
 
 }
 
