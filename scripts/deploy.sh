@@ -579,13 +579,8 @@ nginxEntry() {
     export denied=""
   fi
 
-  ## TODO: Look for a better way to do it
-  export request_method="\$request_method"
-  export http_upgrade="\$http_upgrade"
-  export host="\$host"
-  export request_uri="\$request_uri"
-  export proxy_add_x_forwarded_for="\$proxy_add_x_forwarded_for"
-  envsubst < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
+  export subst_vars='$allowed $allowed2 $allowed3 $denied $ip $subdomain $machine_name $GLOBAL_DOMAIN'
+  envsubst "$subst_vars" < /usr/local/bin/nginx_template > ./sites-available/${subdomain}
   ln -s /etc/nginx/sites-available/${subdomain} /etc/nginx/sites-enabled/${subdomain}
 
   export subdoman=
