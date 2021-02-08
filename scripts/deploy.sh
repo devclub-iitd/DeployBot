@@ -392,15 +392,19 @@ __conf_mount="/root/.docker" # location at which conf volume is mounted
 __temp_dir="${__build_mount}/${RANDOM}/" # scratch is important here, since this ought to be an external volume
                                  # which will be shared betweent the docker-compose container and this
                                  # container
-mkdir -p ${__temp_dir}
+
 
 __compose_command="custom-docker-compose"
 __build_arg="-v ${__build_volume}:${__build_mount}" # VOLUME args to be given at build time to docker-compose
 __push_arg="${__build_arg} -v ${__conf_volume}:${__conf_mount}" # VOLUME args to be given at build time to docker-compose
 
-chmod -R 755 "${__temp_dir}" # mktemp gives 700 permission by default
-__repo_dir="${__temp_dir}/${__repo_name}"
-mkdir -p "${__repo_dir}" # Create the repo directory
+if [ "$REGENERATE_NGINX" = false ] ; then
+  mkdir -p ${__temp_dir}
+  chmod -R 755 "${__temp_dir}" # mktemp gives 700 permission by default
+  __repo_dir="${__temp_dir}/${__repo_name}"
+  mkdir -p "${__repo_dir}" # Create the repo directory
+fi
+
 __compose_file="docker-compose.yml"
 __env_file=".env"
 __env_file_secret=".env.secret"
