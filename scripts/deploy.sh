@@ -53,6 +53,7 @@ __base="$(basename "${__file}" .sh)"
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 REGENERATE_NGINX="${REGENERATE_NGINX:-false}"    # true = restart deploybot and regenerate nginx entries. otherwise operate normally.
+NO_NGINX="${NO_NGINX:-false}"    # true = do not generate nginx entry in case of redeploy
 
 
 ### Functions
@@ -145,7 +146,8 @@ function help () {
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
-  -r --regenerate-nginx     Restart deploybot and regenerate nginx entries
+  -r --regenerate-only-nginx     Restart deploybot and regenerate nginx entries
+  -x --no-nginx    Do not generate nginx entries while redeploy
 EOF
 
 # shellcheck disable=SC2015
@@ -354,6 +356,11 @@ if [[ "${arg_r:?}" = "1" ]]; then
   REGENERATE_NGINX=true
 fi
 
+# Do not regenerate nginx conf
+if [[ "${arg_x:?}" = "1" ]]; then
+  NO_NGINX=true
+fi
+
 # no color mode
 if [[ "${arg_n:?}" = "1" ]]; then
   NO_COLOR="true"
@@ -373,7 +380,7 @@ fi
 [[ "${arg_u:-}" ]]     || help      "Setting a repo url with -u or --url is required"
 [[ "${arg_a:-}" ]]     || help      "Setting access criteria with -a or --access is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
-
+[[ ! "${arg_r:-}" ]] | [[ ! "${arg_x:-}" ]] || emergency "-r and -x are mututally exclusive parameters"
 
 ### Runtime
 ##############################################################################
@@ -642,7 +649,9 @@ if [ "$REGENERATE_NGINX" = false ] ; then
     buildImage "${__repo_dir}"
     pushImages "${__repo_dir}"
     deployImage "${__repo_dir}"
-    nginxEntry ${arg_s} ${__machine_name} ${__service_access}
+    if [ "$NO_NGINX" = false ] ; then 
+      nginxEntry ${arg_s} ${__machine_name} ${__service_access}
+    fi
     saveCompose "${__repo_name}" "${__repo_dir}"
     cleanup "${__temp_dir}"
 else

@@ -25,7 +25,9 @@ func deploy(callbackID string, data map[string]interface{}) {
 	log.Infof("beginning %s with callback_id as %s", actionLog, callbackID)
 
 	logPath := fmt.Sprintf("deploy/%s.txt", callbackID)
-	output, err := internaldeploy(actionLog)
+
+	redeploy := toRedeploy(data)
+	output, err := internaldeploy(actionLog, redeploy)
 
 	helper.WriteToFile(path.Join(logDir, logPath), string(output))
 	actionLog.LogPath = logPath
@@ -44,7 +46,7 @@ func deploy(callbackID string, data map[string]interface{}) {
 }
 
 // internaldeploy deploys the given app on the server specified.
-func internaldeploy(a *history.ActionInstance) ([]byte, error) {
+func internaldeploy(a *history.ActionInstance, redeploy bool) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map
@@ -79,7 +81,10 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 			return output, err1
 		}
 
-		args := GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access)
+		kwargs := make(map[string]bool)
+		kwargs["redeploy"] = redeploy
+		args := GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
+
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"
@@ -99,6 +104,27 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 }
 
 // GetDeployArgs - Get arguments to pass to deploy script as a string array
-func GetDeployArgs(repoURL string, branch string, server string, subdomain string, access string) []string {
-	return []string{"-n", "-u", repoURL, "-b", branch, "-m", server, "-s", subdomain, "-a", access}
+func GetDeployArgs(repoURL string, branch string, server string, subdomain string, access string, kwargs map[string]bool) []string {
+	args := []string{"-n", "-u", repoURL, "-b", branch, "-m", server, "-s", subdomain, "-a", access}
+	if v, ok := kwargs["redeploy"]; ok && v {
+		args = append(args, "-x")
+	}
+	if v, ok := kwargs["restart"]; ok && v {
+		args = append(args, "-r")
+	}
+	return args
+}
+
+func toRedeploy(data map[string]interface{}) bool {
+	redeploy := false
+	if v, ok := data["redeploy"]; ok {
+		switch v.(type) {
+		case bool:
+			if v.(bool) {
+				redeploy = true
+			}
+		}
+
+	}
+	return redeploy
 }

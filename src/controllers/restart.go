@@ -14,8 +14,10 @@ func NginxRegenerate() (string, error) {
 		if state.Status != "running" {
 			continue
 		}
-		args := GetDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access)
-		args = append(args, "-r")
+
+		kwargs := make(map[string]bool)
+		kwargs["restart"] = true
+		args := GetDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access, kwargs)
 
 		_, err := exec.Command(deployScriptName, args...).CombinedOutput()
 
