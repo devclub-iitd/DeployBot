@@ -17,7 +17,7 @@ func NginxRegenerate() (string, error) {
 
 		kwargs := make(map[string]bool)
 		kwargs["restart"] = true
-		args := GetDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access, kwargs)
+		args := getDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access, kwargs)
 
 		_, err := exec.Command(deployScriptName, args...).CombinedOutput()
 

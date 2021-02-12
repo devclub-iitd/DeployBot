@@ -93,7 +93,7 @@ func internaldeploy(a *history.ActionInstance, params *DeployAction) ([]byte, er
 			kwargs["redeploy"] = true
 		}
 
-		args := GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
+		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
 
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
@@ -113,8 +113,8 @@ func internaldeploy(a *history.ActionInstance, params *DeployAction) ([]byte, er
 	return output, err
 }
 
-// GetDeployArgs - Get arguments to pass to deploy script as a string array
-func GetDeployArgs(repoURL string, branch string, server string, subdomain string, access string, kwargs map[string]bool) []string {
+// getDeployArgs - Get arguments to pass to deploy script as a string array
+func getDeployArgs(repoURL string, branch string, server string, subdomain string, access string, kwargs map[string]bool) []string {
 	args := []string{"-n", "-u", repoURL, "-b", branch, "-m", server, "-s", subdomain, "-a", access}
 	if v, ok := kwargs["redeploy"]; ok && v {
 		args = append(args, "-x")
