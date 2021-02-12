@@ -7,15 +7,14 @@ import (
 func redeploy(callbackID string, data map[string]interface{}) {
 	// stop(callbackID, data)
 	state, _ := history.GetState(data["git_repo"].(string))
+	params := DeployAction{"deploy", callbackID, make(map[string]interface{})}
 
-	data["subdomain"] = state.Subdomain
-	data["access"] = state.Access
-	data["server_name"] = state.Server
-	data["redeploy"] = false
+	params.data["subdomain"] = state.Subdomain
+	params.data["access"] = state.Access
+	params.data["server_name"] = state.Server
 
 	if state.Status != "stopped" {
-		data["redeploy"] = true
+		params.command = "redeploy"
 	}
-
-	deploy(callbackID, data)
+	handleDeploy(&params)
 }
