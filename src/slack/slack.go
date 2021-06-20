@@ -164,17 +164,8 @@ func ParseAction(r *http.Request) (map[string]interface{}, int, error) {
 	submissionDataMap["user"] = user
 	callbackID := formPayloadMap["callback_id"].(string)
 	log.Infof("action requested with github repo %s with callback_id %s", submissionDataMap["git_repo"].(string), callbackID)
-	switch {
-	case strings.Contains(callbackID, "redeploy"):
-		return map[string]interface{}{"action": "redeploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
-	case strings.Contains(callbackID, "deploy"):
-		return map[string]interface{}{"action": "deploy", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
-	case strings.Contains(callbackID, "stop"):
-		return map[string]interface{}{"action": "stop", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
-	case strings.Contains(callbackID, "logs"):
-		return map[string]interface{}{"action": "logs", "callback_id": callbackID, "data": submissionDataMap}, 200, nil
-	}
-	return nil, 400, fmt.Errorf("invalid action")
+
+	return map[string]interface{}{"callbackID": callbackID, "data": submissionDataMap}, 200, nil
 }
 
 // OptionType parses a request and gets the type of options to return for a slack dialog

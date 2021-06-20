@@ -11,6 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// DeployAction : Used to represent the action passed to handleDeploy
+type DeployAction struct {
+	command    string
+	callbackID string
+	data       map[string]interface{}
+}
+
 // ActionHandler handles the request from slack to perform an action
 func ActionHandler(w http.ResponseWriter, r *http.Request) {
 	data, code, err := slack.ParseAction(r)
@@ -20,16 +27,25 @@ func ActionHandler(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("cannot get action to perform - %v", err)
 		}
 	}
-	switch data["action"].(string) {
-	case "deploy":
-		go deploy(data["callback_id"].(string), data["data"].(map[string]interface{}))
-	case "stop":
-		go stop(data["callback_id"].(string), data["data"].(map[string]interface{}))
-	case "redeploy":
-		go redeploy(data["callback_id"].(string), data["data"].(map[string]interface{}))
-	case "logs":
-		go logs(data["callback_id"].(string), data["data"].(map[string]interface{}))
+	callbackID := data["callbackID"].(string)
+	switch {
+	case strings.Contains(callbackID, "redeploy"):
+		params := DeployAction{"redeploy", callbackID, data["data"].(map[string]interface{})}
+		go redeploy(&params)
+	case strings.Contains(callbackID, "deploy"):
+		params := DeployAction{"deploy", callbackID, data["data"].(map[string]interface{})}
+		go deploy(&params)
+	case strings.Contains(callbackID, "stop"):
+		params := DeployAction{"stop", callbackID, data["data"].(map[string]interface{})}
+		go stop(&params)
+	case strings.Contains(callbackID, "logs"):
+		params := DeployAction{"logs", callbackID, data["data"].(map[string]interface{})}
+		go logs(&params)
+	default:
+		w.WriteHeader(400)
+		log.Errorf("Invalid callbackID: %v", callbackID)
 	}
+
 }
 
 // RepoHandler handles the github create new repo requests

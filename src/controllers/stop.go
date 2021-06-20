@@ -6,17 +6,20 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/devclub-iitd/DeployBot/src/discord"
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/slack"
-	"github.com/devclub-iitd/DeployBot/src/discord"
 	log "github.com/sirupsen/logrus"
 )
 
 // stop stops a running service based on the response from slack
-func stop(callbackID string, data map[string]interface{}) {
+func stop(params *DeployAction) {
+	callbackID := params.callbackID
+	data := params.data
 	channel := data["channel"].(string)
 	actionLog := history.NewAction("stop", data)
+
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Warnf("error occured in posting chat message - %v", err)
 		return

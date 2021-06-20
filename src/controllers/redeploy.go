@@ -4,10 +4,8 @@ import (
 	"github.com/devclub-iitd/DeployBot/src/history"
 )
 
-func redeploy(callbackID string, data map[string]interface{}) {
-	// stop(callbackID, data)
-	state, _ := history.GetState(data["git_repo"].(string))
-	params := DeployAction{"deploy", callbackID, make(map[string]interface{})}
+func redeploy(params *DeployAction) {
+	state, _ := history.GetState(params.data["git_repo"].(string))
 
 	params.data["subdomain"] = state.Subdomain
 	params.data["access"] = state.Access
@@ -16,5 +14,5 @@ func redeploy(callbackID string, data map[string]interface{}) {
 	if state.Status != "stopped" {
 		params.command = "redeploy"
 	}
-	handleDeploy(&params)
+	handleDeploy(params)
 }
