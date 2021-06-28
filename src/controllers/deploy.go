@@ -26,7 +26,7 @@ func deploy(params *deployAction) {
 
 	logPath := fmt.Sprintf("%s/%s.txt", params.command, params.callbackID)
 
-	output, err := internaldeploy(actionLog, params)
+	output, err := internalDeploy(actionLog)
 
 	helper.WriteToFile(path.Join(logDir, logPath), string(output))
 	actionLog.LogPath = logPath
@@ -44,8 +44,8 @@ func deploy(params *deployAction) {
 	go discord.PostActionMessage(params.callbackID, actionLog.EmbedFields())
 }
 
-// internaldeploy deploys the given app on the server specified.
-func internaldeploy(a *history.ActionInstance, params *deployAction) ([]byte, error) {
+// internalDeploy deploys the given app on the server specified.
+func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map

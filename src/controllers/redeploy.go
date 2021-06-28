@@ -16,7 +16,8 @@ import (
 func redeploy(params *deployAction) {
 	state, _ := history.GetState(params.data["git_repo"].(string))
 
-	if state.Status == "stopped" {
+	if state.Status == "stopped" || state.Access == "" || state.Server == "" || state.Subdomain == "" {
+		log.Info("Repo is probably not yet deployed. Deploying now ..\n")
 		deploy(params)
 		return
 	}
@@ -36,7 +37,7 @@ func redeploy(params *deployAction) {
 
 	logPath := fmt.Sprintf("%s/%s.txt", params.command, params.callbackID)
 
-	output, err := internalRedeploy(actionLog, params)
+	output, err := internalRedeploy(actionLog)
 
 	helper.WriteToFile(path.Join(logDir, logPath), string(output))
 	actionLog.LogPath = logPath
@@ -55,7 +56,7 @@ func redeploy(params *deployAction) {
 }
 
 // internalRedeploy redeploys the given app on the server specified.
-func internalRedeploy(a *history.ActionInstance, params *deployAction) ([]byte, error) {
+func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map
