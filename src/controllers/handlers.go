@@ -11,8 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DeployAction : Used to represent the action passed to handleDeploy
-type DeployAction struct {
+// deployAction : Used to represent the action passed to a handler
+type deployAction struct {
 	command    string
 	callbackID string
 	data       map[string]interface{}
@@ -30,16 +30,16 @@ func ActionHandler(w http.ResponseWriter, r *http.Request) {
 	callbackID := data["callbackID"].(string)
 	switch {
 	case strings.Contains(callbackID, "redeploy"):
-		params := DeployAction{"redeploy", callbackID, data["data"].(map[string]interface{})}
+		params := deployAction{"redeploy", callbackID, data["data"].(map[string]interface{})}
 		go redeploy(&params)
 	case strings.Contains(callbackID, "deploy"):
-		params := DeployAction{"deploy", callbackID, data["data"].(map[string]interface{})}
+		params := deployAction{"deploy", callbackID, data["data"].(map[string]interface{})}
 		go deploy(&params)
 	case strings.Contains(callbackID, "stop"):
-		params := DeployAction{"stop", callbackID, data["data"].(map[string]interface{})}
+		params := deployAction{"stop", callbackID, data["data"].(map[string]interface{})}
 		go stop(&params)
 	case strings.Contains(callbackID, "logs"):
-		params := DeployAction{"logs", callbackID, data["data"].(map[string]interface{})}
+		params := deployAction{"logs", callbackID, data["data"].(map[string]interface{})}
 		go logs(&params)
 	default:
 		w.WriteHeader(400)

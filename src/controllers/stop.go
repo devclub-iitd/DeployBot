@@ -14,7 +14,7 @@ import (
 )
 
 // stop stops a running service based on the response from slack
-func stop(params *DeployAction) {
+func stop(params *deployAction) {
 	callbackID := params.callbackID
 	data := params.data
 	channel := data["channel"].(string)

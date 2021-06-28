@@ -13,12 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func deploy(params *DeployAction) {
-	handleDeploy(params)
-}
-
 // deploy deploys a given slack request using the deploy.sh
-func handleDeploy(params *DeployAction) {
+func deploy(params *deployAction) {
 	channel := params.data["channel"].(string)
 	actionLog := history.NewAction(params.command, params.data)
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
@@ -49,7 +45,7 @@ func handleDeploy(params *DeployAction) {
 }
 
 // internaldeploy deploys the given app on the server specified.
-func internaldeploy(a *history.ActionInstance, params *DeployAction) ([]byte, error) {
+func internaldeploy(a *history.ActionInstance, params *deployAction) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map
@@ -84,13 +80,7 @@ func internaldeploy(a *history.ActionInstance, params *DeployAction) ([]byte, er
 			return output, err1
 		}
 
-		kwargs := make(map[string]bool)
-		switch params.command {
-		case "redeploy":
-			kwargs["redeploy"] = true
-		}
-
-		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
+		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, make(map[string]bool))
 
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {

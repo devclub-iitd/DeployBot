@@ -15,7 +15,7 @@ import (
 )
 
 // logs runs the controller to get logs for a service
-func logs(params *DeployAction) {
+func logs(params *deployAction) {
 	callbackID := params.callbackID
 	data := params.data
 	repoURL := data["git_repo"].(string)
