@@ -23,8 +23,15 @@ func Repos() ([]Repository, error) {
 	}
 	u.Path = path.Join(u.Path, "orgs/"+organizationName+"/repos")
 
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", u.String()+"?per_page=100", nil)
+	if err != nil {
+		return nil, fmt.Errorf("request creation failed - %v", err)
+	}
+	req.SetBasicAuth(url.QueryEscape(githubUserName), url.QueryEscape(githubAccessToken))
+
 	log.Infof("sending an HTTP GET request to %s to get list of repos", u.Path)
-	resp, err := http.Get(u.String() + "?per_page=100")
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed - %v", err)
 	}

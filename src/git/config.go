@@ -9,6 +9,13 @@ import (
 var (
 	// githubSecret is the secret used to verify that requests come from Github
 	githubSecret string
+
+	// githubToken is the OAuth token used to get details of GitHub private repositories
+	githubAccessToken string
+
+	// githubUserName is the name of the user which is a member of the GitHub
+	//organization. githubAccessToken is a personal access token of this user
+	githubUserName string
 )
 
 const (
@@ -30,5 +37,15 @@ func init() {
 	githubSecret = helper.Env("GITHUB_SECRET", "None")
 	if githubSecret == "None" {
 		log.Fatal("GITHUB_SECRET is not present in environment, Exiting")
+	}
+
+	githubUserName = helper.Env("GITHUB_USERNAME", "None")
+	if githubUserName == "None" {
+		log.Fatal("GITHUB_USERNAME is not present in environment, Exiting")
+	}
+
+	githubAccessToken = helper.Env("GITHUB_ACCESS_TOKEN", "None")
+	if githubTAccessToken == "None" {
+		log.Fatal("GITHUB_ACCESS_TOKEN is not present in environment, Exiting")
 	}
 }
