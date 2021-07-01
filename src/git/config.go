@@ -10,7 +10,8 @@ var (
 	// githubSecret is the secret used to verify that requests come from Github
 	githubSecret string
 
-	// githubToken is the OAuth token used to get details of GitHub private repositories
+	// githubAccessToken is the OAuth token used to get details of GitHub
+	// private repositories
 	githubAccessToken string
 
 	// githubUserName is the name of the user which is a member of the GitHub
@@ -45,7 +46,7 @@ func init() {
 	}
 
 	githubAccessToken = helper.Env("GITHUB_ACCESS_TOKEN", "None")
-	if githubTAccessToken == "None" {
+	if githubAccessToken == "None" {
 		log.Fatal("GITHUB_ACCESS_TOKEN is not present in environment, Exiting")
 	}
 }
