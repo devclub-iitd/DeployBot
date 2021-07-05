@@ -16,8 +16,8 @@ import (
 func redeploy(params *deployAction) {
 	state, _ := history.GetState(params.data["git_repo"].(string))
 
-	if state.Status == "stopped" || state.Access == "" || state.Server == "" || state.Subdomain == "" {
-		log.Info("Repo is probably not yet deployed. Deploying now ..\n")
+	if state.Status == "stopped" {
+		log.Infof("Repo %v is currently stopped. Deploying now ..\n", params.data["git_repo"])
 		deploy(params)
 		return
 	}
@@ -30,6 +30,11 @@ func redeploy(params *deployAction) {
 	actionLog := history.NewAction(params.command, params.data)
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Errorf("cannot post redeployment chat message - %v", err)
+		return
+	}
+	if state.Access == "" || state.Server == "" || state.Subdomain == "" {
+		log.Errorf("cannot access previous state of the repo: %v", params.data["git_repo"])
+		slack.PostChatMessage(channel, "repo is not yet deployed. Try deploying it first.", nil)
 		return
 	}
 	go discord.PostActionMessage(params.callbackID, actionLog.EmbedFields())
