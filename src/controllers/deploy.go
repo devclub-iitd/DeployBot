@@ -51,6 +51,9 @@ func deploy(params *deployAction) {
 // internalDeploy deploys the given app on the server specified.
 func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
+	if a.Branch != "" {
+		branch = a.Branch
+	}
 
 	// This is a value, and thus modifying it does not change the original state in the history map
 	state, tag := history.GetState(a.RepoURL)

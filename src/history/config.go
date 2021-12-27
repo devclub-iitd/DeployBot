@@ -46,6 +46,7 @@ var (
 type ActionInstance struct {
 	Timestamp time.Time `json:"timestamp"`
 	RepoURL   string    `json:"repo_url"`
+	Branch    string    `json:"branch"`
 	Action    string    `json:"action"`
 	User      string    `json:"user"`
 	Subdomain string    `json:"subdomain"`
@@ -57,10 +58,16 @@ type ActionInstance struct {
 
 // NewAction returns a new ActionInstance pointer with the relevant data populated from the data map
 func NewAction(action string, data map[string]interface{}) *ActionInstance {
+	gitRepo := data["git_repo"].(string)
+	gitRepoSplit := strings.Split(gitRepo, ":")
+	repoUrl := gitRepoSplit[0]
+	branch := gitRepoSplit[1]
+
 	a := &ActionInstance{
 		Timestamp: time.Now(),
 		Action:    action,
-		RepoURL:   data["git_repo"].(string),
+		RepoURL:   repoUrl,
+		Branch:    branch,
 		User:      data["user"].(string),
 	}
 	if val, ok := data["subdomain"]; ok {
@@ -86,7 +93,7 @@ func (a *ActionInstance) String() string {
 	default:
 		buffer.WriteString(a.Action)
 	}
-	buffer.WriteString(fmt.Sprintf(" on git repo %s by user %s - ", a.RepoURL, a.User))
+	buffer.WriteString(fmt.Sprintf(" on git repo %s:%s, by user %s - ", a.RepoURL, a.Branch, a.User))
 	if a.Result != "" {
 		buffer.WriteString(strings.Title(strings.ToLower(a.Result)))
 		if a.LogPath != "" {

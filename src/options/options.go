@@ -14,10 +14,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Option is the type for the options of list of branches of a repository
+type BranchOption struct {
+	Branch      string `json:"label"`
+	URLComplete string `json:"value"`
+}
+
 // RepoOption is the type for the options of list of repositories
 type RepoOption struct {
-	Name string `json:"label"`
-	URL  string `json:"value"`
+	Name     string         `json:"label"`
+	Branches []BranchOption `json:"options"`
+}
+
+type OptionGroup struct {
+	Group []RepoOption `json:"option_groups"`
 }
 
 // repoOptionsByte is the byte array of the options of repositories
@@ -36,19 +46,24 @@ func internalUpdateRepos() error {
 	if err != nil {
 		return fmt.Errorf("cannot get repos from github - %v", err)
 	}
-	var repoOptionsList []RepoOption
+	var groupOptions OptionGroup
 	for _, repo := range repos {
-		repoOptionsList = append(repoOptionsList, RepoOption{
-			Name: repo.Name,
-			URL:  repo.URL,
-		})
+		repoOption := RepoOption{
+			Name:     repo.Name,
+			Branches: []BranchOption{},
+		}
+		for _, branchName := range repo.Branches {
+			repoOption.Branches = append(repoOption.Branches, BranchOption{
+				Branch:      branchName,
+				URLComplete: fmt.Sprint("%s:%s", repo.URL, branchName),
+			})
+		}
+		groupOptions.Group = append(groupOptions.Group, repoOption)
 	}
-	sort.Slice(repoOptionsList, func(i, j int) bool {
-		return repoOptionsList[i].Name < repoOptionsList[j].Name
+	sort.Slice(groupOptions.Group, func(i, j int) bool {
+		return groupOptions.Group[i].Name < groupOptions.Group[j].Name
 	})
-	repoOptions := make(map[string]interface{})
-	repoOptions["options"] = repoOptionsList
-	repoOptionsByte, err = json.Marshal(repoOptions)
+	repoOptionsByte, err = json.Marshal(groupOptions)
 	if err != nil {
 		return fmt.Errorf("cannot marshal the list of repos to bytes - %v", err)
 	}

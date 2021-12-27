@@ -30,8 +30,9 @@ const (
 
 // Repository is the type that is used to store information about a repository
 type Repository struct {
-	Name string `json:"repo_name"`
-	URL  string `json:"url"`
+	Name     string   `json:"repo_name"`
+	URL      string   `json:"url"`
+	Branches []string `json:"branches"`
 }
 
 func init() {
