@@ -53,6 +53,7 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 
 	switch state.Status {
 	case "deploying":
+	case "redeploying":
 		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot stop while deploying")

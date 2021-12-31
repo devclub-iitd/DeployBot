@@ -28,7 +28,10 @@ func deploy(params *deployAction) {
 
 	output, err := internalDeploy(actionLog)
 
-	helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	writeErr := helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	if writeErr != nil {
+		log.Errorf("An error occured while writing to %s: %v", path.Join(logDir, logPath), writeErr)
+	}
 	actionLog.LogPath = logPath
 	if err != nil {
 		actionLog.Result = "failed"
@@ -63,6 +66,7 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot deploy while service is stopping")
 	case "deploying":
+	case "redeploying":
 		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")

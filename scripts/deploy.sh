@@ -380,7 +380,10 @@ fi
 [[ "${arg_u:-}" ]]     || help      "Setting a repo url with -u or --url is required"
 [[ "${arg_a:-}" ]]     || help      "Setting access criteria with -a or --access is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
-[[ ! "${arg_r:-}" ]] | [[ ! "${arg_x:-}" ]] || emergency "-r and -x are mututally exclusive parameters"
+if (( $arg_r && $arg_x )); then
+  emergency "-r and -x are mututally exclusive parameters"
+fi;
+
 
 ### Runtime
 ##############################################################################
