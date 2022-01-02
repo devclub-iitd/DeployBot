@@ -60,16 +60,16 @@ type ActionInstance struct {
 // NewAction returns a new ActionInstance pointer with the relevant data populated from the data map
 func NewAction(action string, data map[string]interface{}) *ActionInstance {
 	gitRepo := data["git_repo"].(string)
-	gitRepoSplit := strings.Split(gitRepo, ":")
-	repoUrl := gitRepoSplit[0]
-	branch := gitRepoSplit[1]
+
+	repoURL, branch, completeURL := helper.DeserializeRepo(gitRepo)
 
 	a := &ActionInstance{
-		Timestamp: time.Now(),
-		Action:    action,
-		RepoURL:   repoUrl,
-		Branch:    branch,
-		User:      data["user"].(string),
+		Timestamp:   time.Now(),
+		Action:      action,
+		RepoURL:     repoURL,
+		Branch:      branch,
+		CompleteURL: completeURL,
+		User:        data["user"].(string),
 	}
 	if val, ok := data["subdomain"]; ok {
 		a.Subdomain = val.(string)

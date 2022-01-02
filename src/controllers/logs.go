@@ -18,20 +18,19 @@ import (
 func logs(params *deployAction) {
 	callbackID := params.callbackID
 	data := params.data
-	repoURL := data["git_repo"].(string)
 	channelID := data["channel"].(string)
 	actionLog := history.NewAction("logs", data)
 
-	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", repoURL), nil); err != nil {
+	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", actionLog.CompleteURL), nil); err != nil {
 		log.Warnf("error occured in posting message - %v", err)
 		return
 	}
 	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
-	log.Infof("Fetching logs for service %s with callback_id as %s", repoURL, callbackID)
+	log.Infof("Fetching logs for service %s with callback_id as %s", actionLog.CompleteURL, callbackID)
 
-	output, err := internalLogs(data)
+	output, err := internalLogs(data, actionLog)
 	if err != nil {
-		_ = slack.PostChatMessage(channelID, fmt.Sprintf("Logs for service %s could not be fetched.\nERROR: %s", repoURL, err.Error()), nil)
+		_ = slack.PostChatMessage(channelID, fmt.Sprintf("Logs for service %s could not be fetched.\nERROR: %s", actionLog.CompleteURL, err.Error()), nil)
 		actionLog.Result = "failed"
 	} else {
 		actionLog.Result = "success"
@@ -44,14 +43,14 @@ func logs(params *deployAction) {
 			log.Infof("Deleted log file: %s", filePath)
 		})
 		_ = slack.PostChatMessage(channelID,
-			fmt.Sprintf("Requested logs for service %s would be available at %s/logs/%s for %d minutes.", repoURL, serverURL, filePath, logsExpiryMins),
+			fmt.Sprintf("Requested logs for service %s would be available at %s/logs/%s for %d minutes.", actionLog.CompleteURL, serverURL, filePath, logsExpiryMins),
 			nil)
 	}
 	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
 }
 
-func internalLogs(data map[string]interface{}) ([]byte, error) {
-	gitRepoURL := data["git_repo"].(string)
+func internalLogs(data map[string]interface{}, a *history.ActionInstance) ([]byte, error) {
+	gitRepoURL := a.CompleteURL
 	tailCount := data["tail_count"].(string)
 	current, _ := history.GetState(gitRepoURL)
 	serverName := current.Server

@@ -10,14 +10,15 @@ import (
 	"strings"
 
 	"github.com/devclub-iitd/DeployBot/src/git"
+	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/slack"
 	log "github.com/sirupsen/logrus"
 )
 
 // Option is the type for the options of list of branches of a repository
 type BranchOption struct {
-	Branch      string `json:"label"`
-	URLComplete string `json:"value"`
+	Branch    string `json:"label"`
+	RepoAlias string `json:"value"`
 }
 
 // RepoOption is the type for the options of list of repositories
@@ -53,9 +54,12 @@ func internalUpdateRepos() error {
 			Branches: []BranchOption{},
 		}
 		for _, branchName := range repo.Branches {
+			if strings.HasPrefix(branchName, "dependabot") {
+				continue
+			}
 			repoOption.Branches = append(repoOption.Branches, BranchOption{
-				Branch:      branchName,
-				URLComplete: fmt.Sprintf("%s:%s", repo.URL, branchName),
+				Branch:    branchName,
+				RepoAlias: helper.SerializeRepo(repo.Name, branchName),
 			})
 		}
 		groupOptions.Group = append(groupOptions.Group, repoOption)

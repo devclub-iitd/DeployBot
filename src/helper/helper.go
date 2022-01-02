@@ -10,6 +10,13 @@ import (
 	"hash"
 	"os"
 	fp "path/filepath"
+	"strings"
+)
+
+const (
+	urlPrefix = "https://github.com/devclub-iitd/"
+	delim     = ":"
+	suffix    = ".git"
 )
 
 // DeployCount is the global number of deploy requests handled
@@ -79,4 +86,16 @@ func FileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func SerializeRepo(repoName string, branch string) string {
+	return fmt.Sprintf("%s%s%s", repoName, delim, branch)
+}
+
+func DeserializeRepo(gitRepo string) (repoURL string, branch string, completeUrl string) {
+	gitRepoSplit := strings.Split(gitRepo, delim)
+	repoURL = urlPrefix + strings.Join(gitRepoSplit[:len(gitRepoSplit)-1], delim) + suffix
+	branch = gitRepoSplit[len(gitRepoSplit)-1]
+	completeUrl = fmt.Sprintf("%s%s%s", repoURL, delim, branch)
+	return repoURL, branch, completeUrl
 }

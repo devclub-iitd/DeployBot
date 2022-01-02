@@ -115,6 +115,7 @@ func Branches(repoName string) ([]string, error) {
 		branchName := branchMap["name"].(string)
 		branches = append(branches, branchName)
 	}
+	log.Infof("Fetched branches for %s: %v", repoName, branches)
 	return branches, nil
 }
 
