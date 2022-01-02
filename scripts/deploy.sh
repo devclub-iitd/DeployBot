@@ -390,7 +390,7 @@ fi;
 
 __machine_name=${arg_m}
 __repo_url=${arg_u}
-__repo_name=$(basename ${arg_u} .git) #get name of git repository
+__repo_name=$(basename ${arg_u})":"${arg_b} #get name of git repository
 __repo_branch=${arg_b}
 __service_access=${arg_a}
 __nginx_dir="/etc/nginx"

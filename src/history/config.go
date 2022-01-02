@@ -44,16 +44,17 @@ var (
 
 // ActionInstance type stores one log entry for a deploy or stop request
 type ActionInstance struct {
-	Timestamp time.Time `json:"timestamp"`
-	RepoURL   string    `json:"repo_url"`
-	Branch    string    `json:"branch"`
-	Action    string    `json:"action"`
-	User      string    `json:"user"`
-	Subdomain string    `json:"subdomain"`
-	Server    string    `json:"server"`
-	Access    string    `json:"access"`
-	Result    string    `json:"result"`
-	LogPath   string    `json:"log_path"`
+	Timestamp   time.Time `json:"timestamp"`
+	CompleteURL string    `json:"complete_url"`
+	RepoURL     string    `json:"repo_url"`
+	Branch      string    `json:"branch"`
+	Action      string    `json:"action"`
+	User        string    `json:"user"`
+	Subdomain   string    `json:"subdomain"`
+	Server      string    `json:"server"`
+	Access      string    `json:"access"`
+	Result      string    `json:"result"`
+	LogPath     string    `json:"log_path"`
 }
 
 // NewAction returns a new ActionInstance pointer with the relevant data populated from the data map

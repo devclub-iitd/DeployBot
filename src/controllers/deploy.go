@@ -56,32 +56,32 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 	}
 
 	// This is a value, and thus modifying it does not change the original state in the history map
-	state, tag := history.GetState(a.RepoURL)
+	state, tag := history.GetState(a.CompleteURL)
 
 	var output []byte
 	var err error
 	switch state.Status {
 	case "running":
-		log.Infof("service(%s) is already running", a.RepoURL)
+		log.Infof("service(%s) is already running", a.CompleteURL)
 		output = []byte("Service is already running!")
 		err = errors.New("already running")
 	case "stopping":
-		log.Infof("service(%s) is stopping. Can't deploy.", a.RepoURL)
+		log.Infof("service(%s) is stopping. Can't deploy.", a.CompleteURL)
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot deploy while service is stopping")
 	case "deploying":
 	case "redeploying":
-		log.Infof("service(%s) is being deployed", a.RepoURL)
+		log.Infof("service(%s) is being deployed", a.CompleteURL)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")
 	// Assume that, either the service is stopped or does not exist, which means we can deploy.
 	default:
-		log.Infof("calling %s to deploy %s on %s", deployScriptName, a.RepoURL, a.Server)
+		log.Infof("calling %s to deploy %s on %s", deployScriptName, a.CompleteURL, a.Server)
 		state.Subdomain = a.Subdomain
 		state.Access = a.Access
 		state.Server = a.Server
 		state.Status = "deploying"
-		tag, err1 := history.SetState(a.RepoURL, tag, state)
+		tag, err1 := history.SetState(a.CompleteURL, tag, state)
 		if err1 != nil {
 			log.Infof("setting state to deploying failed - %v", err1)
 			output = []byte("InternalDeployError: cannot set state to deploying - " + err1.Error())
@@ -99,8 +99,8 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 
 		// There should be no error here, ever. Checking it to make sure
 		// TODO: On error, set state to an "error" state which only stop should be able to modify
-		tag, err1 = history.SetState(a.RepoURL, tag, state)
-		for ; err1 != nil; tag, err1 = history.SetState(a.RepoURL, tag, state) {
+		tag, err1 = history.SetState(a.CompleteURL, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(a.CompleteURL, tag, state) {
 			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
 		}
 		log.Infof("setting state to %v successful", state.Status)

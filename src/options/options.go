@@ -55,7 +55,7 @@ func internalUpdateRepos() error {
 		for _, branchName := range repo.Branches {
 			repoOption.Branches = append(repoOption.Branches, BranchOption{
 				Branch:      branchName,
-				URLComplete: fmt.Sprint("%s:%s", repo.URL, branchName),
+				URLComplete: fmt.Sprintf("%s:%s", repo.URL, branchName),
 			})
 		}
 		groupOptions.Group = append(groupOptions.Group, repoOption)

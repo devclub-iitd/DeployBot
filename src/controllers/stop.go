@@ -46,7 +46,7 @@ func stop(params *deployAction) {
 
 // internalStop actually runs the script to stop the given app.
 func internalStop(a *history.ActionInstance) ([]byte, error) {
-	state, tag := history.GetState(a.RepoURL)
+	state, tag := history.GetState(a.CompleteURL)
 
 	var output []byte
 	var err error
@@ -54,24 +54,24 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 	switch state.Status {
 	case "deploying":
 	case "redeploying":
-		log.Infof("service(%s) is being deployed", a.RepoURL)
+		log.Infof("service(%s) is being deployed", a.CompleteURL)
 		output = []byte("Service is being deployed. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot stop while deploying")
 	case "stopping":
-		log.Infof("service(%s) is being stopped. Can't start another stop instance", a.RepoURL)
+		log.Infof("service(%s) is being stopped. Can't start another stop instance", a.CompleteURL)
 		output = []byte("Service is already being stopped.")
 		err = errors.New("already stopping")
 	case "running":
-		log.Infof("calling %s to stop service(%s)", stopScriptName, a.RepoURL)
+		log.Infof("calling %s to stop service(%s)", stopScriptName, a.CompleteURL)
 		state.Status = "stopping"
-		tag, err1 := history.SetState(a.RepoURL, tag, state)
+		tag, err1 := history.SetState(a.CompleteURL, tag, state)
 		if err1 != nil {
 			log.Infof("setting state to stopping failed - %v", err1)
 			output = []byte("InternalStopError: cannot set state to stopping - " + err1.Error())
 			return output, err1
 		}
 
-		if output, err = exec.Command(stopScriptName, state.Subdomain, a.RepoURL, state.Server).CombinedOutput(); err != nil {
+		if output, err = exec.Command(stopScriptName, state.Subdomain, a.CompleteURL, state.Server).CombinedOutput(); err != nil {
 			state.Status = "running"
 		} else {
 			state.Status = "stopped"
@@ -79,13 +79,13 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 
 		// There should be no error here, ever. Checking it to make sure
 		// TODO: On error, set state to an "error" state which only stop should be able to modify
-		tag, err1 = history.SetState(a.RepoURL, tag, state)
-		for ; err1 != nil; tag, err1 = history.SetState(a.RepoURL, tag, state) {
+		tag, err1 = history.SetState(a.CompleteURL, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(a.CompleteURL, tag, state) {
 			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
 		}
 		log.Infof("setting state to %v successful", state.Status)
 	default:
-		log.Infof("service(%s) is already stopped", a.RepoURL)
+		log.Infof("service(%s) is already stopped", a.CompleteURL)
 		output = []byte("Service is already stopped!")
 		err = errors.New("already stopped")
 	}
