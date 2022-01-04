@@ -15,7 +15,7 @@ func NginxRegenerate() (string, error) {
 		if state.Status != "running" {
 			continue
 		}
-		log.Infof("Regenerating for %s, state: %s", repoURL, state.Status)
+		log.Infof("Regenerating NGINX entries for %s, state: %s", repoURL, state.Status)
 		kwargs := make(map[string]bool)
 		kwargs["restart"] = true
 		args := getDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access, kwargs)
