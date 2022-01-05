@@ -389,7 +389,7 @@ fi;
 ##############################################################################
 
 #get name of git repository
-if [[ ${arg_b} -eq "master" ]]; then 
+if [[ ${arg_b} == "master" ]]; then 
   __repo_name="$(basename ${arg_u} .git)"
 else
   __repo_name="$(basename ${arg_u} .git)"":"${arg_b} 

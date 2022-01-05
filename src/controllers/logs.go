@@ -20,17 +20,22 @@ func logs(params *deployAction) {
 	data := params.data
 	channelID := data["channel"].(string)
 	actionLog := history.NewAction("logs", data)
+	url := actionLog.CompleteURL
+	if actionLog.Branch == defaultBranch {
+		url = actionLog.RepoURL
+	}
 
-	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", actionLog.CompleteURL), nil); err != nil {
+	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", url), nil); err != nil {
 		log.Warnf("error occured in posting message - %v", err)
 		return
 	}
 	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
-	log.Infof("Fetching logs for service %s with callback_id as %s", actionLog.CompleteURL, callbackID)
+	log.Infof("Fetching logs for service %s with callback_id as %s", url, callbackID)
 
 	output, err := internalLogs(data, actionLog)
 	if err != nil {
-		_ = slack.PostChatMessage(channelID, fmt.Sprintf("Logs for service %s could not be fetched.\nERROR: %s", actionLog.CompleteURL, err.Error()), nil)
+		log.Errorf("ActionLog: %v\nOutput: %s\nERROR: %s", actionLog, string(output), err.Error())
+		_ = slack.PostChatMessage(channelID, fmt.Sprintf("Logs for service %s could not be fetched.\nERROR: %s", url, err.Error()), nil)
 		actionLog.Result = "failed"
 	} else {
 		actionLog.Result = "success"
@@ -43,7 +48,7 @@ func logs(params *deployAction) {
 			log.Infof("Deleted log file: %s", filePath)
 		})
 		_ = slack.PostChatMessage(channelID,
-			fmt.Sprintf("Requested logs for service %s would be available at %s/logs/%s for %d minutes.", actionLog.CompleteURL, serverURL, filePath, logsExpiryMins),
+			fmt.Sprintf("Requested logs for service %s would be available at %s/logs/%s for %d minutes.", url, serverURL, filePath, logsExpiryMins),
 			nil)
 	}
 	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
@@ -63,5 +68,5 @@ func internalLogs(data map[string]interface{}, a *history.ActionInstance) ([]byt
 		log.Infof("service %s is not running, cannot fetch logs", url)
 		return nil, fmt.Errorf("service not running")
 	}
-	return exec.Command(logScriptName, url, serverName, tailCount).CombinedOutput()
+	return exec.Command(logScriptName, a.RepoURL, serverName, tailCount, a.Branch).CombinedOutput()
 }

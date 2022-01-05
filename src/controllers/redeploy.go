@@ -16,10 +16,14 @@ import (
 func redeploy(params *deployAction) {
 	channel := params.data["channel"].(string)
 	actionLog := history.NewAction(params.command, params.data)
-	state, _ := history.GetState(actionLog.CompleteURL)
+	url := actionLog.CompleteURL
+	if actionLog.Branch == defaultBranch {
+		url = actionLog.RepoURL
+	}
+	state, _ := history.GetState(url)
 
 	if state.Status == "stopped" {
-		log.Infof("Repo %v is currently stopped. Deploying now ..\n", actionLog.CompleteURL)
+		log.Infof("Repo %v is currently stopped. Deploying now ..\n", url)
 		deploy(params)
 		return
 	}
@@ -35,7 +39,7 @@ func redeploy(params *deployAction) {
 		return
 	}
 	if state.Access == "" || state.Server == "" || state.Subdomain == "" {
-		log.Errorf("cannot access previous state of the repo: %v", actionLog.CompleteURL)
+		log.Errorf("cannot access previous state of the repo: %v", url)
 		slack.PostChatMessage(channel, "repo is not yet deployed. Try deploying it first.", nil)
 		return
 	}
@@ -54,7 +58,7 @@ func redeploy(params *deployAction) {
 	actionLog.LogPath = logPath
 	if err != nil {
 		actionLog.Result = "failed"
-		log.Errorf("%s - %v", actionLog, err)
+		log.Errorf("ActionLog: %v\nOutput: %s\nERROR: %s", actionLog, string(output), err.Error())
 		history.StoreAction(actionLog)
 		slack.PostChatMessage(channel, fmt.Sprintf("%s\nError: %s\n", actionLog, err.Error()), nil)
 	} else {
@@ -121,8 +125,8 @@ func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 
 		// There should be no error here, ever. Checking it to make sure
 		// TODO: On error, set state to an "error" state which only stop should be able to modify
-		tag, err1 = history.SetState(a.CompleteURL, tag, state)
-		for ; err1 != nil; tag, err1 = history.SetState(a.CompleteURL, tag, state) {
+		tag, err1 = history.SetState(url, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(url, tag, state) {
 			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
 		}
 		log.Infof("setting state to %v successful", state.Status)

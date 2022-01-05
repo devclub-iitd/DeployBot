@@ -36,7 +36,7 @@ func deploy(params *deployAction) {
 	actionLog.LogPath = logPath
 	if err != nil {
 		actionLog.Result = "failed"
-		log.Errorf("%s - %v", actionLog, err)
+		log.Errorf("ActionLog: %v\nOutput: %s\nERROR: %s", actionLog, string(output), err.Error())
 		history.StoreAction(actionLog)
 		slack.PostChatMessage(channel, fmt.Sprintf("%s\nError: %s\n", actionLog, err.Error()), nil)
 	} else {
@@ -103,8 +103,8 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 
 		// There should be no error here, ever. Checking it to make sure
 		// TODO: On error, set state to an "error" state which only stop should be able to modify
-		tag, err1 = history.SetState(a.CompleteURL, tag, state)
-		for ; err1 != nil; tag, err1 = history.SetState(a.CompleteURL, tag, state) {
+		tag, err1 = history.SetState(url, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(url, tag, state) {
 			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
 		}
 		log.Infof("setting state to %v successful", state.Status)
