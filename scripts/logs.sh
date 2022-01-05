@@ -20,7 +20,7 @@ __push_arg="-v ${__nginx_dir}:${__nginx_mount} -v ${__conf_volume}:${__conf_moun
 __repo_url="$1"
 __machine_name="$2"
 __tail_count="$3"
-__repo_name=$(basename ${__repo_url})
+__repo_name=$(basename ${__repo_url} ".git")
 __compose_dir="${__nginx_dir}"/composes
 __compose_file="docker-compose.yml"
 

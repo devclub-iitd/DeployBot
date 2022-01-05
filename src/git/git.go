@@ -57,7 +57,7 @@ func Repos() ([]Repository, error) {
 	for _, repoInterface := range repoList.([]interface{}) {
 		repoMap := repoInterface.(map[string]interface{})
 		repoName := repoMap["name"].(string)
-		repoURL := repoMap["clone_url"].(string)
+		repoURL := repoMap["ssh_url"].(string)
 		branches, err := Branches(repoName)
 		if err != nil {
 			log.Errorf("Unable to fetch branches for repo %s, err: %v", repoURL, err)

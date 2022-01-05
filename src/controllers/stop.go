@@ -50,6 +50,12 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 
 	var output []byte
 	var err error
+	var url string
+	if a.Branch == defaultBranch {
+		url = a.RepoURL
+	} else {
+		url = a.CompleteURL
+	}
 
 	switch state.Status {
 	case "deploying":
@@ -71,7 +77,7 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 			return output, err1
 		}
 
-		if output, err = exec.Command(stopScriptName, state.Subdomain, a.CompleteURL, state.Server).CombinedOutput(); err != nil {
+		if output, err = exec.Command(stopScriptName, state.Subdomain, url, state.Server).CombinedOutput(); err != nil {
 			state.Status = "running"
 		} else {
 			state.Status = "stopped"

@@ -50,13 +50,18 @@ func logs(params *deployAction) {
 }
 
 func internalLogs(data map[string]interface{}, a *history.ActionInstance) ([]byte, error) {
-	gitRepoURL := a.CompleteURL
+	var url string
+	if a.Branch == defaultBranch {
+		url = a.RepoURL
+	} else {
+		url = a.CompleteURL
+	}
 	tailCount := data["tail_count"].(string)
-	current, _ := history.GetState(gitRepoURL)
+	current, _ := history.GetState(url)
 	serverName := current.Server
 	if current.Status != "running" {
-		log.Infof("service %s is not running, cannot fetch logs", gitRepoURL)
+		log.Infof("service %s is not running, cannot fetch logs", url)
 		return nil, fmt.Errorf("service not running")
 	}
-	return exec.Command(logScriptName, gitRepoURL, serverName, tailCount).CombinedOutput()
+	return exec.Command(logScriptName, url, serverName, tailCount).CombinedOutput()
 }

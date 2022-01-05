@@ -55,33 +55,37 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 		branch = a.Branch
 	}
 
+	url := a.CompleteURL
+	if a.Branch == defaultBranch {
+		url = a.RepoURL
+	}
 	// This is a value, and thus modifying it does not change the original state in the history map
-	state, tag := history.GetState(a.CompleteURL)
+	state, tag := history.GetState(url)
 
 	var output []byte
 	var err error
 	switch state.Status {
 	case "running":
-		log.Infof("service(%s) is already running", a.CompleteURL)
+		log.Infof("service(%s) is already running", url)
 		output = []byte("Service is already running!")
 		err = errors.New("already running")
 	case "stopping":
-		log.Infof("service(%s) is stopping. Can't deploy.", a.CompleteURL)
+		log.Infof("service(%s) is stopping. Can't deploy.", url)
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot deploy while service is stopping")
 	case "deploying":
 	case "redeploying":
-		log.Infof("service(%s) is being deployed", a.CompleteURL)
+		log.Infof("service(%s) is being deployed", url)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")
 	// Assume that, either the service is stopped or does not exist, which means we can deploy.
 	default:
-		log.Infof("calling %s to deploy %s on %s", deployScriptName, a.CompleteURL, a.Server)
+		log.Infof("calling %s to deploy %s on %s", deployScriptName, url, a.Server)
 		state.Subdomain = a.Subdomain
 		state.Access = a.Access
 		state.Server = a.Server
 		state.Status = "deploying"
-		tag, err1 := history.SetState(a.CompleteURL, tag, state)
+		tag, err1 := history.SetState(url, tag, state)
 		if err1 != nil {
 			log.Infof("setting state to deploying failed - %v", err1)
 			output = []byte("InternalDeployError: cannot set state to deploying - " + err1.Error())

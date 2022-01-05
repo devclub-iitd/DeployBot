@@ -388,9 +388,15 @@ fi;
 ### Runtime
 ##############################################################################
 
+#get name of git repository
+if [[ ${arg_b} -eq "master" ]]; then 
+  __repo_name="$(basename ${arg_u} .git)"
+else
+  __repo_name="$(basename ${arg_u} .git)"":"${arg_b} 
+fi;
+
 __machine_name=${arg_m}
 __repo_url=${arg_u}
-__repo_name=$(basename ${arg_u})":"${arg_b} #get name of git repository
 __repo_branch=${arg_b}
 __service_access=${arg_a}
 __nginx_dir="/etc/nginx"

@@ -20,7 +20,7 @@ __subdomain="${1}"
 __repo_url="${2}"
 __machine_name="${3}"
 
-__repo_name=$(basename ${__repo_url})
+__repo_name=$(basename ${__repo_url} ".git")
 __compose_dir="${__nginx_dir}"/composes
 __compose_file="docker-compose.yml"
 
