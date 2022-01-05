@@ -18,8 +18,8 @@ server
 	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
 	## allow specific methods
-	add_header Allow "GET, POST, HEAD, PUT" always;
-	if ( $request_method !~ ^(GET|POST|HEAD|PUT)$ ) {
+	add_header Allow "GET, POST, HEAD, PUT, OPTIONS" always;
+	if ( $request_method !~ ^(GET|POST|HEAD|PUT|OPTIONS)$ ) {
 		return 405;
 	}
 
