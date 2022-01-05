@@ -11,15 +11,18 @@ import (
 func NginxRegenerate() (string, error) {
 	branch := defaultBranch
 	for repoURL, state := range history.Services() {
+
 		if state.Status != "running" {
 			continue
 		}
-		args := GetDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access)
-		args = append(args, "-r")
-
-		_, err := exec.Command(deployScriptName, args...).CombinedOutput()
+		log.Infof("Regenerating NGINX entries for %s, state: %s", repoURL, state.Status)
+		kwargs := make(map[string]bool)
+		kwargs["restart"] = true
+		args := getDeployArgs(repoURL, branch, state.Server, state.Subdomain, state.Access, kwargs)
+		out, err := exec.Command(deployScriptName, args...).CombinedOutput()
 
 		if err != nil {
+			log.Errorf("Command output: %v", string(out))
 			return repoURL, err
 		}
 

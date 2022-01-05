@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"hash"
 	"os"
+	fp "path/filepath"
 )
 
 // DeployCount is the global number of deploy requests handled
 var (
-	DeployCount int32 = 0
-	StopCount   int32 = 0
-	LogsCount   int32 = 0
+	DeployCount   int32 = 0
+	StopCount     int32 = 0
+	LogsCount     int32 = 0
 	RedeployCount int32 = 0
 )
 
@@ -47,6 +48,7 @@ func Hash(payload, secret, hashType string) (string, error) {
 
 // WriteToFile writes a given string to a file. It creates the file if it is not present
 func WriteToFile(filePath, text string) error {
+	CreateDirIfNotExist(fp.Dir(filePath))
 	f, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("cannot create file - %v", err)

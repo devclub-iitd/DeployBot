@@ -6,17 +6,20 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/devclub-iitd/DeployBot/src/discord"
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/slack"
-	"github.com/devclub-iitd/DeployBot/src/discord"
 	log "github.com/sirupsen/logrus"
 )
 
 // stop stops a running service based on the response from slack
-func stop(callbackID string, data map[string]interface{}) {
+func stop(params *deployAction) {
+	callbackID := params.callbackID
+	data := params.data
 	channel := data["channel"].(string)
 	actionLog := history.NewAction("stop", data)
+
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Warnf("error occured in posting chat message - %v", err)
 		return
@@ -50,6 +53,7 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 
 	switch state.Status {
 	case "deploying":
+	case "redeploying":
 		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot stop while deploying")

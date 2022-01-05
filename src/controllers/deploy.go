@@ -14,20 +14,25 @@ import (
 )
 
 // deploy deploys a given slack request using the deploy.sh
-func deploy(callbackID string, data map[string]interface{}) {
-	channel := data["channel"].(string)
-	actionLog := history.NewAction("deploy", data)
+func deploy(params *deployAction) {
+	channel := params.data["channel"].(string)
+	actionLog := history.NewAction(params.command, params.data)
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Errorf("cannot post begin deployment chat message - %v", err)
 		return
 	}
-	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
-	log.Infof("beginning %s with callback_id as %s", actionLog, callbackID)
+	go discord.PostActionMessage(params.callbackID, actionLog.EmbedFields())
+	log.Infof("beginning %s with callback_id as %s", actionLog, params.callbackID)
 
-	logPath := fmt.Sprintf("deploy/%s.txt", callbackID)
-	output, err := internaldeploy(actionLog)
+	logPath := fmt.Sprintf("%s/%s.txt", params.command, params.callbackID)
 
-	helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	output, err := internalDeploy(actionLog)
+
+	writeErr := helper.WriteToFile(path.Join(logDir, logPath), string(output))
+	if writeErr != nil {
+		log.Errorf("An error occured while writing to %s: %s", path.Join(logDir, logPath), writeErr.Error())
+		slack.PostChatMessage(channel, fmt.Sprintf("%s\nCould not write to %s\nerror: %s\n", actionLog, path.Join(logDir, logPath), writeErr.Error()), nil)
+	}
 	actionLog.LogPath = logPath
 	if err != nil {
 		actionLog.Result = "failed"
@@ -40,11 +45,11 @@ func deploy(callbackID string, data map[string]interface{}) {
 		history.StoreAction(actionLog)
 		slack.PostChatMessage(channel, fmt.Sprintf("%s\n", actionLog), nil)
 	}
-	go discord.PostActionMessage(callbackID, actionLog.EmbedFields())
+	go discord.PostActionMessage(params.callbackID, actionLog.EmbedFields())
 }
 
-// internaldeploy deploys the given app on the server specified.
-func internaldeploy(a *history.ActionInstance) ([]byte, error) {
+// internalDeploy deploys the given app on the server specified.
+func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
 
 	// This is a value, and thus modifying it does not change the original state in the history map
@@ -62,6 +67,7 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot deploy while service is stopping")
 	case "deploying":
+	case "redeploying":
 		log.Infof("service(%s) is being deployed", a.RepoURL)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")
@@ -79,7 +85,8 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 			return output, err1
 		}
 
-		args := GetDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access)
+		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, make(map[string]bool))
+
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"
@@ -98,7 +105,14 @@ func internaldeploy(a *history.ActionInstance) ([]byte, error) {
 	return output, err
 }
 
-// GetDeployArgs - Get arguments to pass to deploy script as a string array
-func GetDeployArgs(repoURL string, branch string, server string, subdomain string, access string) []string {
-	return []string{"-n", "-u", repoURL, "-b", branch, "-m", server, "-s", subdomain, "-a", access}
+// getDeployArgs - Get arguments to pass to deploy script as a string array
+func getDeployArgs(repoURL string, branch string, server string, subdomain string, access string, kwargs map[string]bool) []string {
+	args := []string{"-n", "-u", repoURL, "-b", branch, "-m", server, "-s", subdomain, "-a", access}
+	if v, ok := kwargs["redeploy"]; ok && v {
+		args = append(args, "-x")
+	}
+	if v, ok := kwargs["restart"]; ok && v {
+		args = append(args, "-r")
+	}
+	return args
 }
