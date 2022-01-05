@@ -31,7 +31,7 @@ func deploy(params *deployAction) {
 	writeErr := helper.WriteToFile(path.Join(logDir, logPath), string(output))
 	if writeErr != nil {
 		log.Errorf("An error occured while writing to %s: %s", path.Join(logDir, logPath), writeErr.Error())
-		slack.PostChatMessage(channel, fmt.Sprintf("Could not write to %s error: %s\n", path.Join(logDir, logPath), writeErr.Error()), nil)
+		slack.PostChatMessage(channel, fmt.Sprintf("%s\nCould not write to %s\nerror: %s\n", actionLog, path.Join(logDir, logPath), writeErr.Error()), nil)
 	}
 	actionLog.LogPath = logPath
 	if err != nil {
