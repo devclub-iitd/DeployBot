@@ -168,22 +168,23 @@ func ParseAction(r *http.Request) (map[string]interface{}, int, error) {
 	return map[string]interface{}{"callbackID": callbackID, "data": submissionDataMap}, 200, nil
 }
 
-// OptionType parses a request and gets the type of options to return for a slack dialog
-func OptionType(r *http.Request) (string, int, error) {
+// OptionDetails parses a request and gets the type of options and the corresponding search value
+// to return for a slack dialog
+func OptionDetails(r *http.Request) (string, string, int, error) {
 	if !validateRequest(r) {
 		log.Warnf("request verification from slack failed")
-		return "", 403, fmt.Errorf("verification failed")
+		return "", "", 403, fmt.Errorf("verification failed")
 	}
 	log.Info("request verification from slack succeeded")
 	r.ParseForm()
 	var payload interface{}
 	if err := json.Unmarshal([]byte(r.Form["payload"][0]), &payload); err != nil {
 		log.Errorf("cannot unmarshal payload - %v", err)
-		return "", 500, fmt.Errorf("cannot unmarshal payload")
+		return "", "", 500, fmt.Errorf("cannot unmarshal payload")
 	}
 
 	payloadMap, _ := payload.(map[string]interface{})
-	return payloadMap["name"].(string), 200, nil
+	return payloadMap["name"].(string), payloadMap["value"].(string), 200, nil
 }
 
 // PostChatMessage is a function used to post chat message to Slack
