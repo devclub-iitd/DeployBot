@@ -14,26 +14,29 @@ import (
 )
 
 func redeploy(params *deployAction) {
-	state, _ := history.GetState(params.data["git_repo"].(string))
-
-	if state.Status == "stopped" {
-		log.Infof("Repo %v is currently stopped. Deploying now ..\n", params.data["git_repo"])
-		deploy(params)
-		return
-	}
+	channel := params.data["channel"].(string)
+	actionLog := history.NewAction(params.command, params.data)
+	url := actionLog.CompleteURL
+	state, _ := history.GetState(url)
 
 	params.data["subdomain"] = state.Subdomain
 	params.data["access"] = state.Access
 	params.data["server_name"] = state.Server
 
-	channel := params.data["channel"].(string)
-	actionLog := history.NewAction(params.command, params.data)
+	if state.Status == "stopped" {
+		log.Infof("Repo %v is currently stopped. Deploying now ..\n", url)
+		deploy(params)
+		return
+	}
+
+	actionLog = history.NewAction(params.command, params.data)
+
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Errorf("cannot post redeployment chat message - %v", err)
 		return
 	}
 	if state.Access == "" || state.Server == "" || state.Subdomain == "" {
-		log.Errorf("cannot access previous state of the repo: %v", params.data["git_repo"])
+		log.Errorf("cannot access previous state of the repo: %v", url)
 		slack.PostChatMessage(channel, "repo is not yet deployed. Try deploying it first.", nil)
 		return
 	}
@@ -52,7 +55,7 @@ func redeploy(params *deployAction) {
 	actionLog.LogPath = logPath
 	if err != nil {
 		actionLog.Result = "failed"
-		log.Errorf("%s - %v", actionLog, err)
+		log.Errorf("ActionLog: %v\nOutput: %s\nERROR: %s", actionLog, string(output), err.Error())
 		history.StoreAction(actionLog)
 		slack.PostChatMessage(channel, fmt.Sprintf("%s\nError: %s\n", actionLog, err.Error()), nil)
 	} else {
@@ -67,30 +70,35 @@ func redeploy(params *deployAction) {
 // internalRedeploy redeploys the given app on the server specified.
 func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 	branch := defaultBranch
+	if a.Branch != "" {
+		branch = a.Branch
+	}
+
+	url := a.CompleteURL
 
 	// This is a value, and thus modifying it does not change the original state in the history map
-	state, tag := history.GetState(a.RepoURL)
+	state, tag := history.GetState(url)
 
 	var output []byte
 	var err error
 	switch state.Status {
 	case "stopping":
-		log.Infof("service(%s) is stopping. Can't redeploy.", a.RepoURL)
+		log.Infof("service(%s) is stopping. Can't redeploy.", url)
 		output = []byte("Service is stopping. Please wait for the process to be completed and try again.")
 		err = errors.New("cannot redeploy while service is stopping")
 	case "deploying":
 	case "redeploying":
-		log.Infof("service(%s) is being deployed", a.RepoURL)
+		log.Infof("service(%s) is being deployed", url)
 		output = []byte("Service is being deployed. Cannot start another deploy instance.")
 		err = errors.New("already deploying")
 	// Assume that, either the service is stopped or does not exist, which means we can deploy.
 	default:
-		log.Infof("calling %s to redeploy %s on %s", deployScriptName, a.RepoURL, a.Server)
+		log.Infof("calling %s to redeploy %s on %s", deployScriptName, url, a.Server)
 		state.Subdomain = a.Subdomain
 		state.Access = a.Access
 		state.Server = a.Server
 		state.Status = "redeploying"
-		tag, err1 := history.SetState(a.RepoURL, tag, state)
+		tag, err1 := history.SetState(url, tag, state)
 		if err1 != nil {
 			log.Infof("setting state to redeploying failed - %v", err1)
 			output = []byte("InternalDeployError: cannot set state to redeploying - " + err1.Error())
@@ -101,6 +109,7 @@ func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 		kwargs["redeploy"] = true
 
 		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
+		log.Infof("args: %v", args)
 
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
@@ -111,8 +120,8 @@ func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 
 		// There should be no error here, ever. Checking it to make sure
 		// TODO: On error, set state to an "error" state which only stop should be able to modify
-		tag, err1 = history.SetState(a.RepoURL, tag, state)
-		for ; err1 != nil; tag, err1 = history.SetState(a.RepoURL, tag, state) {
+		tag, err1 = history.SetState(url, tag, state)
+		for ; err1 != nil; tag, err1 = history.SetState(url, tag, state) {
 			log.Errorf("setting state to %v failed - %v. Retrying...", state.Status, err1)
 		}
 		log.Infof("setting state to %v successful", state.Status)

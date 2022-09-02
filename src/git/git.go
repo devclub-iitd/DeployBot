@@ -41,6 +41,9 @@ func Repos() ([]Repository, error) {
 	switch resp.Header.Get("Content-Encoding") {
 	case "gzip":
 		reader, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read using gzip - %v", err)
+		}
 		defer reader.Close()
 	default:
 		reader = resp.Body
@@ -55,12 +58,65 @@ func Repos() ([]Repository, error) {
 		repoMap := repoInterface.(map[string]interface{})
 		repoName := repoMap["name"].(string)
 		repoURL := repoMap["ssh_url"].(string)
+		branches, err := Branches(repoName)
+		if err != nil {
+			log.Errorf("Unable to fetch branches for repo %s, err: %v", repoURL, err)
+			branches = []string{""}
+		}
 		repositories = append(repositories, Repository{
-			Name: repoName,
-			URL:  repoURL})
+			Name:     repoName,
+			URL:      repoURL,
+			Branches: branches,
+		})
 
 	}
 	return repositories, nil
+}
+
+func Branches(repoName string) ([]string, error) {
+	u, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse github url %s - %v", apiURL, err)
+	}
+
+	u.Path = path.Join(u.Path, "repos", organizationName, repoName, "branches")
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", u.String()+"?per_page=100", nil)
+	if err != nil {
+		return nil, fmt.Errorf("request creation failed - %v", err)
+	}
+	req.SetBasicAuth(url.QueryEscape(githubUserName), url.QueryEscape(githubAccessToken))
+
+	log.Infof("sending an HTTP GET request to %s to get list of branches", u.Path)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed - %v", err)
+	}
+	defer resp.Body.Close()
+	var reader io.ReadCloser
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, err = gzip.NewReader(resp.Body)
+		defer reader.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read using gzip - %v", err)
+		}
+	default:
+		reader = resp.Body
+	}
+	var branchList interface{}
+	if err := json.NewDecoder(reader).Decode(&branchList); err != nil {
+		return nil, fmt.Errorf("cannot parse response into json - %v", err)
+	}
+
+	var branches []string
+	for _, branchInterface := range branchList.([]interface{}) {
+		branchMap := branchInterface.(map[string]interface{})
+		branchName := branchMap["name"].(string)
+		branches = append(branches, branchName)
+	}
+	log.Infof("Fetched branches for %s: %v", repoName, branches)
+	return branches, nil
 }
 
 func validateRequest(r *http.Request) bool {

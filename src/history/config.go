@@ -44,24 +44,32 @@ var (
 
 // ActionInstance type stores one log entry for a deploy or stop request
 type ActionInstance struct {
-	Timestamp time.Time `json:"timestamp"`
-	RepoURL   string    `json:"repo_url"`
-	Action    string    `json:"action"`
-	User      string    `json:"user"`
-	Subdomain string    `json:"subdomain"`
-	Server    string    `json:"server"`
-	Access    string    `json:"access"`
-	Result    string    `json:"result"`
-	LogPath   string    `json:"log_path"`
+	Timestamp   time.Time `json:"timestamp"`
+	CompleteURL string    `json:"complete_url"`
+	RepoURL     string    `json:"repo_url"`
+	Branch      string    `json:"branch"`
+	Action      string    `json:"action"`
+	User        string    `json:"user"`
+	Subdomain   string    `json:"subdomain"`
+	Server      string    `json:"server"`
+	Access      string    `json:"access"`
+	Result      string    `json:"result"`
+	LogPath     string    `json:"log_path"`
 }
 
 // NewAction returns a new ActionInstance pointer with the relevant data populated from the data map
 func NewAction(action string, data map[string]interface{}) *ActionInstance {
+	gitRepo := data["git_repo"].(string)
+
+	repoURL, branch, completeURL := helper.DeserializeRepo(gitRepo)
+
 	a := &ActionInstance{
-		Timestamp: time.Now(),
-		Action:    action,
-		RepoURL:   data["git_repo"].(string),
-		User:      data["user"].(string),
+		Timestamp:   time.Now(),
+		Action:      action,
+		RepoURL:     repoURL,
+		Branch:      branch,
+		CompleteURL: completeURL,
+		User:        data["user"].(string),
 	}
 	if val, ok := data["subdomain"]; ok {
 		a.Subdomain = val.(string)
@@ -80,13 +88,8 @@ func (a *ActionInstance) String() string {
 	buffer.WriteString("[")
 	buffer.WriteString(a.Timestamp.Format(TimeFormatString))
 	buffer.WriteString("] Action ")
-	switch a.Action {
-	case "deploy":
-		buffer.WriteString(fmt.Sprintf("deploy {subdomain = %s, server = %s, access = %s }", a.Subdomain, a.Server, a.Access))
-	default:
-		buffer.WriteString(a.Action)
-	}
-	buffer.WriteString(fmt.Sprintf(" on git repo %s by user %s - ", a.RepoURL, a.User))
+	buffer.WriteString(fmt.Sprintf("%s {subdomain = %s, server = %s, access = %s }", a.Action, a.Subdomain, a.Server, a.Access))
+	buffer.WriteString(fmt.Sprintf(" on git repo %s:%s, by user %s - ", a.RepoURL, a.Branch, a.User))
 	if a.Result != "" {
 		buffer.WriteString(strings.Title(strings.ToLower(a.Result)))
 		if a.LogPath != "" {

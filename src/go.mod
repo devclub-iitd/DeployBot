@@ -3,6 +3,7 @@ module github.com/devclub-iitd/DeployBot/src
 go 1.14
 
 require (
+	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481

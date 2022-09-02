@@ -20,7 +20,13 @@ __push_arg="-v ${__nginx_dir}:${__nginx_mount} -v ${__conf_volume}:${__conf_moun
 __repo_url="$1"
 __machine_name="$2"
 __tail_count="$3"
-__repo_name=$(basename ${__repo_url} .git)
+__repo_branch="$4"
+
+if [[ ${__repo_branch} == "master" ]]; then 
+  __repo_name="$(basename ${__repo_url} .git)"
+else
+  __repo_name="$(basename ${__repo_url} .git)"":"${__repo_branch} 
+fi;
 __compose_dir="${__nginx_dir}"/composes
 __compose_file="docker-compose.yml"
 
