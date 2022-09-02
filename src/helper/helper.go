@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	urlPrefix = "https://github.com/devclub-iitd/"
+	urlPrefix = "git@github.com:devclub-iitd/"
 	delim     = ":"
 	suffix    = ".git"
 )

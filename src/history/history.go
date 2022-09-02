@@ -30,6 +30,12 @@ func initState() error {
 	}
 
 	for repoURL, service := range history {
+		if repoUrlSplit := strings.Split(repoURL, ".git:"); len(repoUrlSplit) != 2 {
+			log.Warnf("repoURL (%s) is not of the form <repo>:<branch>", repoURL)
+			repoCompleteURL := repoURL + ":master"
+			history[repoCompleteURL] = service
+			delete(history, repoURL)
+		}
 		actualTag := makeTag(repoURL, *service.Current)
 		if service.StateTag != actualTag {
 			log.Warnf("State tag for %s in history file is \"%s\", expected \"%s\"", repoURL, service.StateTag, actualTag)

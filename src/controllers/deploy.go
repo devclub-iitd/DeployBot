@@ -16,6 +16,7 @@ import (
 // deploy deploys a given slack request using the deploy.sh
 func deploy(params *deployAction) {
 	channel := params.data["channel"].(string)
+	log.Infof("Deploy params data: %v\n", params.data)
 	actionLog := history.NewAction(params.command, params.data)
 	if err := slack.PostChatMessage(channel, actionLog.String(), nil); err != nil {
 		log.Errorf("cannot post begin deployment chat message - %v", err)
@@ -56,9 +57,7 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 	}
 
 	url := a.CompleteURL
-	if a.Branch == defaultBranch {
-		url = a.RepoURL
-	}
+
 	// This is a value, and thus modifying it does not change the original state in the history map
 	state, tag := history.GetState(url)
 
@@ -93,7 +92,7 @@ func internalDeploy(a *history.ActionInstance) ([]byte, error) {
 		}
 
 		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, make(map[string]bool))
-
+		log.Infof("args: %v", args)
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
 			state.Status = "stopped"

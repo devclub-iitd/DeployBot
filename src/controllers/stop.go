@@ -50,12 +50,7 @@ func internalStop(a *history.ActionInstance) ([]byte, error) {
 
 	var output []byte
 	var err error
-	var url string
-	if a.Branch == defaultBranch {
-		url = a.RepoURL
-	} else {
-		url = a.CompleteURL
-	}
+	url := a.CompleteURL
 	state, tag := history.GetState(url)
 
 	switch state.Status {

@@ -21,9 +21,6 @@ func logs(params *deployAction) {
 	channelID := data["channel"].(string)
 	actionLog := history.NewAction("logs", data)
 	url := actionLog.CompleteURL
-	if actionLog.Branch == defaultBranch {
-		url = actionLog.RepoURL
-	}
 
 	if err := slack.PostChatMessage(channelID, fmt.Sprintf("Fetching logs for %s ...", url), nil); err != nil {
 		log.Warnf("error occured in posting message - %v", err)
@@ -55,12 +52,7 @@ func logs(params *deployAction) {
 }
 
 func internalLogs(data map[string]interface{}, a *history.ActionInstance) ([]byte, error) {
-	var url string
-	if a.Branch == defaultBranch {
-		url = a.RepoURL
-	} else {
-		url = a.CompleteURL
-	}
+	url := a.CompleteURL
 	tailCount := data["tail_count"].(string)
 	current, _ := history.GetState(url)
 	serverName := current.Server

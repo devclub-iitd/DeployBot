@@ -88,12 +88,7 @@ func (a *ActionInstance) String() string {
 	buffer.WriteString("[")
 	buffer.WriteString(a.Timestamp.Format(TimeFormatString))
 	buffer.WriteString("] Action ")
-	switch a.Action {
-	case "deploy":
-		buffer.WriteString(fmt.Sprintf("deploy {subdomain = %s, server = %s, access = %s }", a.Subdomain, a.Server, a.Access))
-	default:
-		buffer.WriteString(a.Action)
-	}
+	buffer.WriteString(fmt.Sprintf("%s {subdomain = %s, server = %s, access = %s }", a.Action, a.Subdomain, a.Server, a.Access))
 	buffer.WriteString(fmt.Sprintf(" on git repo %s:%s, by user %s - ", a.RepoURL, a.Branch, a.User))
 	if a.Result != "" {
 		buffer.WriteString(strings.Title(strings.ToLower(a.Result)))

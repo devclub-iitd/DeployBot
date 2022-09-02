@@ -17,20 +17,17 @@ func redeploy(params *deployAction) {
 	channel := params.data["channel"].(string)
 	actionLog := history.NewAction(params.command, params.data)
 	url := actionLog.CompleteURL
-	if actionLog.Branch == defaultBranch {
-		url = actionLog.RepoURL
-	}
 	state, _ := history.GetState(url)
+
+	params.data["subdomain"] = state.Subdomain
+	params.data["access"] = state.Access
+	params.data["server_name"] = state.Server
 
 	if state.Status == "stopped" {
 		log.Infof("Repo %v is currently stopped. Deploying now ..\n", url)
 		deploy(params)
 		return
 	}
-
-	params.data["subdomain"] = state.Subdomain
-	params.data["access"] = state.Access
-	params.data["server_name"] = state.Server
 
 	actionLog = history.NewAction(params.command, params.data)
 
@@ -78,9 +75,6 @@ func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 	}
 
 	url := a.CompleteURL
-	if a.Branch == defaultBranch {
-		url = a.RepoURL
-	}
 
 	// This is a value, and thus modifying it does not change the original state in the history map
 	state, tag := history.GetState(url)
@@ -115,6 +109,7 @@ func internalRedeploy(a *history.ActionInstance) ([]byte, error) {
 		kwargs["redeploy"] = true
 
 		args := getDeployArgs(a.RepoURL, branch, a.Server, a.Subdomain, a.Access, kwargs)
+		log.Infof("args: %v", args)
 
 		output, err = exec.Command(deployScriptName, args...).CombinedOutput()
 		if err != nil {
