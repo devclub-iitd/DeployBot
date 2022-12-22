@@ -135,17 +135,18 @@ func validateRequest(r *http.Request) bool {
 	return false
 }
 
-func parseEvent(msg interface{}) (string, string, string) {
+func parseEvent(msg interface{}) (string, string, string, string) {
 	payloadMap := msg.(map[string]interface{})
 	action := payloadMap["action"].(string)
 	if action != "created" {
 		log.Info("event type is not of repo creation")
-		return action, "", ""
+		return action, "", "", ""
 	}
 	repoMap := payloadMap["repository"].(map[string]interface{})
 	repoURL := repoMap["ssh_url"].(string)
 	repoName := repoMap["name"].(string)
-	return action, repoName, repoURL
+	repoBranch := repoMap["default_branch"].(string)
+	return action, repoName, repoURL, repoBranch
 }
 
 // CreatedRepo parses a new repo request from github and returns a Repository and error and status code
@@ -168,12 +169,15 @@ func CreatedRepo(r *http.Request) (*Repository, int, error) {
 		return nil, 500, fmt.Errorf("cannot unmarshal request body")
 	}
 
-	event, repoName, repoURL := parseEvent(msg)
+	event, repoName, repoURL, repoBranch := parseEvent(msg)
 	if event != "created" {
 		return nil, 200, fmt.Errorf("not a repo creation event")
 	}
 	return &Repository{
 		Name: repoName,
 		URL:  repoURL,
+		Branches: []string{
+			repoBranch,
+		},
 	}, 200, nil
 }
