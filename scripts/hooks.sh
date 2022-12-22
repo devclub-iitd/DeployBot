@@ -10,6 +10,8 @@ set -o nounset
 set -o pipefail
 
 __repo_url=${1}
+__repo_branch=${2}
+
 __repo_name=$(basename ${__repo_url} .git) #get name of git repository
 __temp_dir=$(mktemp -d)
 __repo_dir="${__temp_dir}/${__repo_name}"
@@ -25,8 +27,8 @@ mkdir -p "${__hooks_repo_dir}"
 
 ## @brief Pulls repository in the given path
 ## @param $1 repo url to clone.
-## @param $2 branch name of the git repository.
-## @param $3 path on which to clone the repo.
+## @param $2 path on which to clone the repo.
+## @param $3 branch name of the git repository.
 pullRepository() {
   local repo_url=${1}
   local repo_path=${2}
@@ -62,14 +64,19 @@ setupHooks(){
     popd
 }
 
+
+## @brief Pushes repository to Github
+## @param $1 path where updates to the repository are stored.
+## @param $2 branch of the repository.
 pushRepo(){
     local repo_path=${1}
+    local repo_branch=${2}
     
     pushd "${repo_path}"
     git add -A .
     git commit -m "[DeployBot] Initialized gitsecret and added git hooks"
     git pull || true
-    git push -u origin master
+    git push -u origin "${repo_branch}"
     echo "Git Repo successfully initialized and pushed"
     popd
 }
@@ -82,10 +89,10 @@ cleanup() {
   echo "Cleanup successfull"
 }
 
-pullRepository "${__repo_url}" "${__repo_dir}"
+pullRepository "${__repo_url}" "${__repo_dir}" "${__repo_branch}"
 pullRepository "${__hooks_repo_url}" "${__hooks_repo_dir}" "hooks"
 initGitSecret "${__repo_dir}"
 setupHooks "${__repo_dir}" "${__hooks_repo_dir}"
-pushRepo "${__repo_dir}"
+pushRepo "${__repo_dir}" "${__repo_branch}"
 cleanup "${__repo_dir}"
 cleanup "${__hooks_repo_dir}"

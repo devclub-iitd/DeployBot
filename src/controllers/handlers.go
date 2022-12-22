@@ -60,7 +60,14 @@ func RepoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Infof("beginning initialization of %s", repo.URL)
-	go addHooks(repo.URL, repo.Name)
+
+	branches := []string{defaultBranch}
+	if len(repo.Branches) > 0 {
+		branches = repo.Branches
+	}
+	for _, branch := range branches {
+		go addHooks(repo.URL, repo.Name, branch)
+	}
 	go options.UpdateRepos()
 }
 

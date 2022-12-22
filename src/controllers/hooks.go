@@ -11,10 +11,10 @@ import (
 )
 
 // addHooks calls the hooks script to initialize the hooks for a newly created git repo
-func addHooks(repoURL, repoName string) {
+func addHooks(repoURL, repoName string, branchName string) {
 	log.Infof("Calling %s to initialize hooks for repo", hooksScriptName)
-	output, err := exec.Command(hooksScriptName, repoURL).CombinedOutput()
-	helper.WriteToFile(path.Join(logDir, "git", repoName+".txt"), string(output))
+	output, err := exec.Command(hooksScriptName, repoURL, branchName).CombinedOutput()
+	helper.WriteToFile(path.Join(logDir, "git", fmt.Sprintf("%s:%s.txt", repoName, branchName)), string(output))
 	if err != nil {
 		log.Errorf("initialization of git repo(%s) FAILED - %v", repoURL, err)
 		_ = slack.PostChatMessage(slack.AllHooksChannelID,
