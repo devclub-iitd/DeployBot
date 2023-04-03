@@ -8,6 +8,7 @@ import (
 	"github.com/devclub-iitd/DeployBot/src/history"
 	"github.com/devclub-iitd/DeployBot/src/options"
 	"github.com/devclub-iitd/DeployBot/src/slack"
+	"github.com/devclub-iitd/DeployBot/src/git"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,6 +38,9 @@ func main() {
 
 	// Github New repo creation HTTP handler
 	http.HandleFunc("/github/repo/", controllers.RepoHandler)
+
+	// Github CI HTTP handler
+	http.HandleFunc("/github/ci/", git.CIHandler)
 
 	// General status and history HTTP handlers
 	http.HandleFunc("/logs/", controllers.LogHandler)

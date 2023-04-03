@@ -9,7 +9,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"path"
+	"reflect"
 
 	"github.com/devclub-iitd/DeployBot/src/helper"
 	log "github.com/sirupsen/logrus"
@@ -180,4 +183,123 @@ func CreatedRepo(r *http.Request) (*Repository, int, error) {
 			repoBranch,
 		},
 	}, 200, nil
+}
+
+func validateActionRequest(r *http.Request) bool {
+	headerValue := r.Header.Get("Authorization")
+	return "Bearer " + githubActionToken == headerValue
+}
+
+// CIHandler handles the request to add CI Files to a repo
+func CIHandler(w http.ResponseWriter, r *http.Request) {
+
+	if !validateActionRequest(r) {
+		log.Info("Request verification from Github Action: FAILED")
+		w.WriteHeader(403)
+		return
+	}
+	log.Info("Request verification from Github Action: SUCCESS")
+
+	if r.Method != "POST" {
+		w.WriteHeader(405)
+		log.Errorf("received a %s request, expected POST for CI Handler", r.Method)
+		return
+	}
+
+	r_body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Errorf("cannot read request body - %v", err)
+		return
+	}
+
+	var ci CIAction
+	if err := json.Unmarshal(r_body, &ci); err != nil {
+		w.WriteHeader(500)
+		log.Errorf("cannot unmarshal request body - %v", err)
+		return
+	}
+
+	var ciList []string
+	// add Default checks
+	ciList = append(ciList, "Default")
+	v := reflect.ValueOf(ci)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).String() == "true" {
+			ciList = append(ciList, v.Type().Field(i).Name)
+		}
+	}
+	addChecks(ciList)
+	log.Info("Added checks to pre-commit-config.yaml")
+
+	// call a script to add this file to the repo
+
+	// get ssh_url of the repo
+	repositories, err := Repos()
+	if err != nil {
+		log.Error("Error getting repositories %v", err)
+		return
+	}
+	var repo Repository
+	for _, repository := range repositories {
+		if repository.Name == ci.Repo {
+			repo = repository
+		}
+	}
+	if repo.Name == "" {
+		log.Error("Repository not found")
+		return
+	}
+
+	for _, branch := range repo.Branches {
+		go addCI(repo.URL, repo.Name, branch)
+	}
+
+}
+
+func addChecks(ciList []string) {
+	// combine the data of all files in ciList to a file named .pre-commit-config.yaml
+
+	// create the file even if it exists
+	os.Create(PRE_COMMIT_CONFIG)
+	f, err := os.OpenFile(PRE_COMMIT_CONFIG, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		log.Error("Error opening file:pre-commit.config")
+		return
+	}
+
+	// close the file after the function returns
+	defer f.Close()
+
+	for i := 0; i < len(ciList); i++ {
+		// add the data from the file to the pre-commit-config file
+
+		var file_name string = ciList[i] + ".ci"
+		var file_path string = BASE_FILES_PATH + file_name
+
+		content, err := os.ReadFile(file_path)
+		if err != nil {
+			log.Error("Error reading file:" + file_path)
+			return
+		}
+
+		// append the data to the pre-commit-config file
+		_, err = fmt.Fprintf(f, string(content)+"\n")
+		if err != nil {
+			fmt.Printf("Error writing to file:%s\n", PRE_COMMIT_CONFIG)
+			return
+		}
+	}
+}
+
+func addCI(repoURL,repoName, branchName string) {
+	// call the script ciScriptName
+	log.Infof("Calling script %s for repo:%s and branch:%s",ciScriptName, repoName, branchName)
+	output,err := exec.Command(ciScriptName, repoURL, branchName).CombinedOutput()
+	helper.WriteToFile(path.Join(logDir, "git", fmt.Sprintf("%s:%s.txt", repoName, branchName)), string(output))
+	if err != nil {
+		log.Errorf("Add CI to git repo - %s: FAILED - %v", repoURL, err)
+	} else {
+		log.Infof("Add CI to git repo - %s: SUCCESS",repoURL)
+	}
 }
