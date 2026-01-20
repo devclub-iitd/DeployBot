@@ -10,7 +10,7 @@ require (
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect
 	github.com/robfig/cron v1.2.0
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.8.3
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	go.uber.org/zap v1.14.1
